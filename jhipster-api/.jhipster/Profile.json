@@ -1,0 +1,36 @@
+{
+  "annotations": {
+    "changelogDate": "20250711212512"
+  },
+  "applications": ["KindialApp"],
+  "fields": [
+    {
+      "fieldName": "language",
+      "fieldType": "Language",
+      "fieldValues": "FRENCH,ENGLISH,SPANISH"
+    }
+  ],
+  "name": "Profile",
+  "relationships": [
+    {
+      "otherEntityName": "user",
+      "relationshipName": "user",
+      "relationshipSide": "left",
+      "relationshipType": "one-to-one",
+      "relationshipWithBuiltInEntity": true
+    },
+    {
+      "otherEntityName": "trait",
+      "relationshipName": "trait",
+      "relationshipSide": "left",
+      "relationshipType": "many-to-many"
+    },
+    {
+      "otherEntityName": "conversation",
+      "otherEntityRelationshipName": "profile",
+      "relationshipName": "messages",
+      "relationshipSide": "left",
+      "relationshipType": "many-to-many"
+    }
+  ]
+}

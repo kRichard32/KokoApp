@@ -1,0 +1,26 @@
+{
+  "kindialApp": {
+    "trait": {
+      "home": {
+        "title": "Traits",
+        "refreshListLabel": "Refrescar lista",
+        "createLabel": "Crear nuevo Trait",
+        "createOrEditLabel": "Crear o editar Trait",
+        "search": "Buscar Trait",
+        "notFound": "Ningún Traits encontrado"
+      },
+      "created": "Un nuevo Trait ha sido creado con el identificador {{ param }}",
+      "updated": "Un Trait ha sido actualizado con el identificador {{ param }}",
+      "deleted": "Un Trait ha sido eliminado con el identificador {{ param }}",
+      "delete": {
+        "question": "¿Seguro que quiere eliminar Trait {{ id }}?"
+      },
+      "detail": {
+        "title": "Trait"
+      },
+      "id": "ID",
+      "traitName": "Trait Name",
+      "profile": "Profile"
+    }
+  }
+}

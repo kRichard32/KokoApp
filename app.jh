@@ -1,0 +1,78 @@
+application {
+  config {
+    applicationType monolith,
+    baseName KindialApp
+    packageName com.kindial.app,
+    authenticationType oauth2,
+    prodDatabaseType postgresql,
+    buildTool gradle,
+    searchEngine elasticsearch,
+    testFrameworks [protractor],
+    clientFramework react,
+    enableTranslation true,
+    nativeLanguage en,
+    languages [en, es]
+  }
+  entities Profile, Trait, Conversation, Message
+}
+
+entity Profile{
+    language Language
+}
+
+entity Trait {
+	traitName String
+}
+
+entity Conversation {
+    lastMessageID String
+    createdAt String
+    updatedAt String
+    conversationName String
+}
+
+entity Message {
+	rawContent Blob
+    transcript String
+    timestamp String
+    messageType MessageType
+}
+enum MessageType{
+	VOICE, VIDEO, TEXT
+}
+
+enum Language {
+    FRENCH, ENGLISH, SPANISH
+}
+
+relationship OneToOne {
+	Profile{user} to User with builtInEntity
+}
+relationship OneToOne {
+	Message{profile} to Profile
+}
+
+relationship ManyToMany {
+	Profile{trait} to Trait
+}
+
+relationship ManyToMany {
+	Profile{messages} to Conversation{profile}
+}
+
+// defining multiple OneToMany relationships with comments
+relationship OneToMany {
+	Conversation{message} to Message
+}
+
+
+// Set pagination options
+paginate Trait with infinite-scroll
+
+// Use Data Transfer Objects (DTO)
+// dto * with mapstruct
+
+// Set service options to all except few
+
+// Set an angular suffix
+// angularSuffix * with mySuffix

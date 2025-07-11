@@ -1,0 +1,15 @@
+{
+  "annotations": {
+    "changelogDate": "20250711212612"
+  },
+  "applications": ["KindialApp"],
+  "fields": [
+    {
+      "fieldName": "traitName",
+      "fieldType": "String"
+    }
+  ],
+  "name": "Trait",
+  "pagination": "infinite-scroll",
+  "relationships": []
+}

@@ -1,0 +1,10 @@
+{
+  "kindialApp": {
+    "MessageType": {
+      "null": "",
+      "VOICE": "VOICE",
+      "VIDEO": "VIDEO",
+      "TEXT": "TEXT"
+    }
+  }
+}
