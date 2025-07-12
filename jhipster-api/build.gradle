@@ -18,8 +18,8 @@ version = "0.0.1-SNAPSHOT"
 
 description = ""
 
-sourceCompatibility=17
-targetCompatibility=17
+sourceCompatibility=24
+targetCompatibility=24
 assert System.properties["java.specification.version"] == "17" || "21" || "24"
 
 ext {
