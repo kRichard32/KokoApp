@@ -1,5 +1,5 @@
 // app/screens/HomeScreen.tsx
-import { FC } from "react"
+import { FC, useState } from "react"
 import {
   View,
   Pressable,
@@ -10,6 +10,8 @@ import {
   Platform,
   Image,
   ImageStyle,
+  Animated,
+  StyleSheet,
 } from "react-native"
 
 import { Screen } from "@/components/Screen"
@@ -26,6 +28,11 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
     themed,
     theme: { colors, spacing },
   } = useAppTheme()
+
+  // 语音录制状态
+  const [isRecording, setIsRecording] = useState(false)
+  const scaleAnim = useState(new Animated.Value(1))[0]
+  const pulseAnim = useState(new Animated.Value(1))[0]
 
   /** ====== 卡片按钮元数据 ====== */
   const ACTIONS = [
@@ -68,9 +75,61 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
   }
 
   /** ====== 语音处理函数 ====== */
-  const handleVoicePress = () => {
-    // TODO: 实现语音识别功能
-    console.log("Voice button pressed - implement voice recognition here")
+  const startRecording = () => {
+    if (isRecording) return // 防止重复触发
+    
+    setIsRecording(true)
+    
+    // 按钮放大动画
+    Animated.spring(scaleAnim, {
+      toValue: 1.2,
+      useNativeDriver: true,
+      tension: 150,
+      friction: 8,
+    }).start()
+
+    // 脉冲动画
+    const pulseAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    )
+    pulseAnimation.start()
+
+    console.log("Recording started - implement voice recognition here")
+  }
+
+  const stopRecording = () => {
+    if (!isRecording) return // 防止重复触发
+    
+    setIsRecording(false)
+    
+    // 停止脉冲动画并重置按钮大小
+    pulseAnim.stopAnimation()
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 150,
+        friction: 8,
+      }),
+      Animated.timing(pulseAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start()
+
+    console.log("Recording stopped")
   }
 
   return (
@@ -126,21 +185,60 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
       </View>
 
       {/* 语音按钮 */}
-      <Pressable
-        accessible
-        accessibilityRole="button"
-        accessibilityLabel="Voice command"
-        onPress={handleVoicePress}
+      <Animated.View
         style={[
-          $voiceButton,
-          { backgroundColor: colors.palette.accent100, borderColor: colors.palette.accent500 },
+          { 
+            transform: [{ scale: Animated.multiply(scaleAnim, pulseAnim) }],
+            zIndex: 1000, // 确保按钮在遮罩之上
+            elevation: 1000, // Android elevation
+          }
         ]}
       >
-        <Text size="xxl" style={$voiceIcon}>🎤</Text>
-        <Text preset="formLabel" size="lg" weight="medium" style={$voiceLabel}>
-          Tap to speak
-        </Text>
-      </Pressable>
+        <Pressable
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel={isRecording ? "Stop recording" : "Voice command"}
+          onPressIn={startRecording}
+          onPressOut={stopRecording}
+          style={[
+            $voiceButton,
+            { 
+              backgroundColor: isRecording ? "#FFE4E1" : colors.palette.accent100, 
+              borderColor: isRecording ? "#FF6B6B" : colors.palette.accent500,
+            },
+          ]}
+        >
+          <Text size="xxl" style={$voiceIcon}>
+            {isRecording ? "🔴" : "🎤"}
+          </Text>
+          <Text preset="formLabel" size="lg" weight="medium" style={$voiceLabel}>
+            {isRecording ? "Listening..." : "Hold to speak"}
+          </Text>
+        </Pressable>
+      </Animated.View>
+
+      {/* 录制时的取消按钮 */}
+      {isRecording && (
+        <Pressable
+          style={$cancelButton}
+          onPress={stopRecording}
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel="Cancel recording"
+        >
+          <Text preset="formLabel" size="md" style={$cancelButtonText}>
+            Cancel
+          </Text>
+        </Pressable>
+      )}
+
+      {/* 录制时的背景遮罩 */}
+      {isRecording && (
+        <View
+          pointerEvents="none"
+          style={$recordingOverlay}
+        />
+      )}
 
       {/* 搜索栏；KeyboardAvoiding 让键盘不挡住输入 */}
       {/* <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -303,6 +401,36 @@ const $voiceIcon: TextStyle = {
 
 const $voiceLabel: TextStyle = {
   color: "#2D5016", // 深绿色，老年人友好
+}
+
+const $cancelButton: ViewStyle = {
+  alignSelf: "center",
+  backgroundColor: "#FFF",
+  borderRadius: 20,
+  paddingVertical: 12,
+  paddingHorizontal: 24,
+  marginTop: 16,
+  borderWidth: 1,
+  borderColor: "#FF6B6B",
+  shadowColor: "#000",
+  shadowOffset: {
+    width: 0,
+    height: 2,
+  },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  elevation: 3,
+}
+
+const $cancelButtonText: TextStyle = {
+  color: "#FF6B6B",
+  fontWeight: "600",
+}
+
+const $recordingOverlay: ViewStyle = {
+  ...StyleSheet.absoluteFillObject,
+  backgroundColor: "rgba(0, 0, 0, 0.3)",
+  zIndex: 500, // 低于语音按钮的 zIndex (1000)
 }
 
 const $searchField: ViewStyle = {
