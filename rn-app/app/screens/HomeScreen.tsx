@@ -31,8 +31,17 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
 
   // 语音录制状态
   const [isRecording, setIsRecording] = useState(false)
+  const [recognizedText, setRecognizedText] = useState("")
+  const [isProcessing, setIsProcessing] = useState(false)
   const scaleAnim = useState(new Animated.Value(1))[0]
   const pulseAnim = useState(new Animated.Value(1))[0]
+  const textOpacityAnim = useState(new Animated.Value(0))[0]
+  // Siri波形动画
+  const waveAnim1 = useState(new Animated.Value(0.5))[0]
+  const waveAnim2 = useState(new Animated.Value(0.7))[0]
+  const waveAnim3 = useState(new Animated.Value(0.3))[0]
+  const waveAnim4 = useState(new Animated.Value(0.8))[0]
+  const waveAnim5 = useState(new Animated.Value(0.6))[0]
 
   /** ====== 卡片按钮元数据 ====== */
   const ACTIONS = [
@@ -75,10 +84,68 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
   }
 
   /** ====== 语音处理函数 ====== */
+  const mockVoiceRecognition = () => {
+    const sampleTexts = [
+      "I want to talk to Emma",
+      "Show me today's reminders", 
+      "Find my friends",
+      "Open chat messages",
+      "What events are coming up",
+      "Help me with medication",
+      "Call my family",
+      "Schedule a doctor appointment"
+    ]
+    
+    const randomText = sampleTexts[Math.floor(Math.random() * sampleTexts.length)]
+    
+    // 模拟语音识别处理时间
+    setTimeout(() => {
+      setRecognizedText(randomText)
+      setIsProcessing(false)
+      
+      // 文字淡入动画，像Siri一样从下往上滑入
+      Animated.parallel([
+        Animated.timing(textOpacityAnim, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1.05, // 轻微放大
+          useNativeDriver: true,
+          tension: 100,
+          friction: 8,
+        })
+      ]).start()
+      
+      // 5秒后自动清除文字
+      setTimeout(() => {
+        Animated.parallel([
+          Animated.timing(textOpacityAnim, {
+            toValue: 0,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+          Animated.spring(scaleAnim, {
+            toValue: 1,
+            useNativeDriver: true,
+            tension: 100,
+            friction: 8,
+          })
+        ]).start(() => {
+          setRecognizedText("")
+        })
+      }, 5000) // 延长显示时间让老年人有足够时间阅读
+    }, 800 + Math.random() * 1200) // 稍微缩短处理时间
+  }
+
   const startRecording = () => {
     if (isRecording) return // 防止重复触发
     
     setIsRecording(true)
+    setIsProcessing(true)
+    setRecognizedText("")
+    textOpacityAnim.setValue(0)
     
     // 按钮放大动画
     Animated.spring(scaleAnim, {
@@ -105,6 +172,33 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
     )
     pulseAnimation.start()
 
+    // Siri波形动画
+    const createWaveAnimation = (animValue: Animated.Value, delay: number) => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.timing(animValue, {
+            toValue: 1,
+            duration: 600 + delay,
+            useNativeDriver: false,
+          }),
+          Animated.timing(animValue, {
+            toValue: 0.2,
+            duration: 600 + delay,
+            useNativeDriver: false,
+          }),
+        ])
+      )
+    }
+
+    createWaveAnimation(waveAnim1, 0).start()
+    createWaveAnimation(waveAnim2, 100).start()
+    createWaveAnimation(waveAnim3, 200).start()
+    createWaveAnimation(waveAnim4, 50).start()
+    createWaveAnimation(waveAnim5, 150).start()
+
+    // 开始模拟语音识别
+    mockVoiceRecognition()
+
     console.log("Recording started - implement voice recognition here")
   }
 
@@ -112,9 +206,16 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
     if (!isRecording) return // 防止重复触发
     
     setIsRecording(false)
+    setIsProcessing(false)
     
-    // 停止脉冲动画并重置按钮大小
+    // 停止所有动画并重置按钮大小
     pulseAnim.stopAnimation()
+    waveAnim1.stopAnimation()
+    waveAnim2.stopAnimation()
+    waveAnim3.stopAnimation()
+    waveAnim4.stopAnimation()
+    waveAnim5.stopAnimation()
+    
     Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1,
@@ -237,7 +338,45 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
         <View
           pointerEvents="none"
           style={$recordingOverlay}
-        />
+        >
+          {/* Siri风格的语音识别界面 */}
+          <View style={$siriContainer}>
+            {isProcessing ? (
+              <View style={$siriProcessingContainer}>
+                <View style={$siriWaveformContainer}>
+                    <Text style={$siriIcon}>🗣️</Text>
+                  <View style={$siriWaveform}>
+                    <View style={[$siriWaveBar, { height: 20 }]} />
+                    <View style={[$siriWaveBar, { height: 35 }]} />
+                    <View style={[$siriWaveBar, { height: 15 }]} />
+                    <View style={[$siriWaveBar, { height: 28 }]} />
+                    <View style={[$siriWaveBar, { height: 22 }]} />
+                  </View>
+                </View>
+                <Text style={$siriProcessingText}>Listening...</Text>
+              </View>
+            ) : (
+              recognizedText && (
+                <Animated.View style={[
+                  $siriResultContainer,
+                  { 
+                    opacity: textOpacityAnim,
+                    transform: [{ scale: scaleAnim }]
+                  }
+                ]}>
+                  <View style={$siriResultHeader}>
+                    <Text style={$siriResultIcon}>✓</Text>
+                    <Text style={$siriResultTitle}>I heard:</Text>
+                  </View>
+                  <Text style={$siriResultText}>"{recognizedText}"</Text>
+                  <View style={$siriResultActions}>
+                    <Text style={$siriResultHint}>Processing your request...</Text>
+                  </View>
+                </Animated.View>
+              )
+            )}
+          </View>
+        </View>
       )}
 
       {/* 搜索栏；KeyboardAvoiding 让键盘不挡住输入 */}
@@ -429,8 +568,120 @@ const $cancelButtonText: TextStyle = {
 
 const $recordingOverlay: ViewStyle = {
   ...StyleSheet.absoluteFillObject,
-  backgroundColor: "rgba(0, 0, 0, 0.3)",
-  zIndex: 500, // 低于语音按钮的 zIndex (1000)
+  backgroundColor: "rgba(0, 0, 0, 0.75)", // 更深的背景，像Siri
+  zIndex: 500,
+}
+
+// Siri风格的样式
+const $siriContainer: ViewStyle = {
+  flex: 1,
+  justifyContent: "center",
+  alignItems: "center",
+  paddingHorizontal: 24,
+}
+
+const $siriProcessingContainer: ViewStyle = {
+  alignItems: "center",
+  backgroundColor: "rgba(255, 255, 255, 0.98)",
+  borderRadius: 24,
+  padding: 32,
+  minWidth: 280,
+  shadowColor: "#000",
+  shadowOffset: {
+    width: 0,
+    height: 8,
+  },
+  shadowOpacity: 0.25,
+  shadowRadius: 16,
+  elevation: 16,
+}
+
+const $siriWaveformContainer: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  marginBottom: 20,
+}
+
+const $siriIcon: TextStyle = {
+  fontSize: 24,
+  marginRight: 16,
+}
+
+const $siriWaveform: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 4,
+}
+
+const $siriWaveBar: ViewStyle = {
+  width: 4,
+  backgroundColor: "#007AFF", // iOS蓝色
+  borderRadius: 2,
+  opacity: 0.8,
+}
+
+const $siriProcessingText: TextStyle = {
+  fontSize: 20,
+  fontWeight: "500",
+  color: "#1D1D1F",
+  textAlign: "center",
+}
+
+const $siriResultContainer: ViewStyle = {
+  backgroundColor: "rgba(255, 255, 255, 0.98)",
+  borderRadius: 28,
+  padding: 36,
+  maxWidth: "92%",
+  minWidth: 320,
+  alignItems: "center",
+  shadowColor: "#000",
+  shadowOffset: {
+    width: 0,
+    height: 12,
+  },
+  shadowOpacity: 0.3,
+  shadowRadius: 20,
+  elevation: 20,
+}
+
+const $siriResultHeader: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  marginBottom: 20,
+}
+
+const $siriResultIcon: TextStyle = {
+  fontSize: 20,
+  color: "#34C759", // iOS绿色
+  marginRight: 12,
+  fontWeight: "bold",
+}
+
+const $siriResultTitle: TextStyle = {
+  fontSize: 18,
+  fontWeight: "600",
+  color: "#8E8E93",
+}
+
+const $siriResultText: TextStyle = {
+  fontSize: 28, // 大字体，老年人友好
+  fontWeight: "600",
+  color: "#1D1D1F",
+  textAlign: "center",
+  lineHeight: 36,
+  marginBottom: 24,
+  letterSpacing: 0.5,
+}
+
+const $siriResultActions: ViewStyle = {
+  alignItems: "center",
+}
+
+const $siriResultHint: TextStyle = {
+  fontSize: 16,
+  fontWeight: "500",
+  color: "#007AFF",
+  textAlign: "center",
 }
 
 const $searchField: ViewStyle = {
