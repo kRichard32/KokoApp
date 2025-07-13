@@ -15,6 +15,8 @@ import { LoginScreen } from "@/screens/LoginScreen"
 import { WelcomeScreen } from "@/screens/WelcomeScreen"
 import { useAppTheme } from "@/theme/context"
 import { HomeScreen } from "@/screens/HomeScreen"
+import { MessageScreen } from "@/screens/MessageScreen"
+import { ChatDetailScreen } from "@/screens/ChatDetailScreen"
 
 import { DemoNavigator, DemoTabParamList } from "./DemoNavigator"
 import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
@@ -33,6 +35,11 @@ export type AppStackParamList = {
   Login: undefined
   Demo: NavigatorScreenParams<DemoTabParamList>
   Home: undefined
+  Message: undefined
+  ChatDetail: {
+    contactId: string
+    contactName: string
+  }
   // 🔥 Your screens go here
   // IGNITE_GENERATOR_ANCHOR_APP_STACK_PARAM_LIST
 }
@@ -72,6 +79,8 @@ const AppStack = () => {
       {isAuthenticated ? (
         <>
           <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="Message" component={MessageScreen} />
+          <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
           
           <Stack.Screen name="Welcome" component={WelcomeScreen} />
 

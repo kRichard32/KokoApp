@@ -45,7 +45,7 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
 
   /** ====== 卡片按钮元数据 ====== */
   const ACTIONS = [
-    { key: "Chat", emoji: "💬", tint: colors.palette.primary100, route: "Chat" },
+    { key: "Chat", emoji: "💬", tint: colors.palette.primary100, route: "Message" },
     { key: "Match", emoji: "🤝", tint: colors.palette.secondary100, route: "Match" },
     { key: "Events", emoji: "🎉", tint: colors.palette.secondary100, route: "Events" },
     { key: "Reminders", emoji: "⏰", tint: colors.palette.primary100, route: "Reminders" },
