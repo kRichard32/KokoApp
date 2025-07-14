@@ -17,6 +17,8 @@ import { useAppTheme } from "@/theme/context"
 import { HomeScreen } from "@/screens/HomeScreen"
 import { MessageScreen } from "@/screens/MessageScreen"
 import { ChatDetailScreen } from "@/screens/ChatDetailScreen"
+import { VideoCallScreen } from "@/screens/VideoCallScreen"
+import { MatchScreen } from "@/screens/MatchScreen"
 
 import { DemoNavigator, DemoTabParamList } from "./DemoNavigator"
 import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
@@ -40,6 +42,11 @@ export type AppStackParamList = {
     contactId: string
     contactName: string
   }
+  VideoCall: {
+    contactId: string
+    contactName: string
+  }
+  Match: undefined
   // 🔥 Your screens go here
   // IGNITE_GENERATOR_ANCHOR_APP_STACK_PARAM_LIST
 }
@@ -81,6 +88,15 @@ const AppStack = () => {
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="Message" component={MessageScreen} />
           <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
+          <Stack.Screen 
+            name="VideoCall" 
+            component={VideoCallScreen}
+            options={{
+              headerShown: false,
+              orientation: "portrait",
+            }}
+          />
+          <Stack.Screen name="Match" component={MatchScreen} />
           
           <Stack.Screen name="Welcome" component={WelcomeScreen} />
 
