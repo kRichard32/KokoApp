@@ -11,3 +11,5 @@ externalNativeBuild {
     }
 }
 ```
+
+`npx react-native doctor` if anything goes wrong 
