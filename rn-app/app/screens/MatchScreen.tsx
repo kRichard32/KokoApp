@@ -147,7 +147,7 @@ export const MatchScreen: FC<MatchScreenProps> = ({ navigation }) => {
   // 渲染照片项
   const renderPhoto: ListRenderItem<string> = ({ item, index }) => (
     <View style={$photoContainer}>
-      <Image 
+      <Image
         source={{ uri: item }}
         style={$photo}
         defaultSource={require("../../assets/images/avatar-placeholder.jpg")}
@@ -227,41 +227,16 @@ export const MatchScreen: FC<MatchScreenProps> = ({ navigation }) => {
 
       <ScrollView style={$scrollContainer} showsVerticalScrollIndicator={false}>
         {/* 照片轮播 */}
-        <View style={$photoSection}>
-          <FlatList
-            ref={photoScrollRef}
-            data={currentUser.photos}
-            renderItem={renderPhoto}
-            keyExtractor={(item, index) => index.toString()}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onScroll={onPhotoScroll}
-            scrollEventThrottle={16}
-          />
-          
-          {/* 照片指示器 */}
-          <View style={$photoDotsContainer}>
-            {currentUser.photos.map((_, index: number) => (
-              <View
-                key={index}
-                style={[
-                  $photoDot,
-                  index === currentPhotoIndex ? $photoDotActive : $photoDotInactive
-                ]}
-              />
-            ))}
-          </View>
-        </View>
+
 
         {/* 用户信息卡片 */}
         <View style={$infoCard}>
           {/* 基本信息 */}
           <View style={$basicInfo}>
-            <Image 
-              source={{ uri: currentUser.avatar }}
-              style={$avatarLarge}
-              defaultSource={require("../../assets/images/avatar-placeholder.jpg")}
+            <Image
+//               source={{ uri: currentUser.avatar }}
+//               style={$avatarLarge}
+//               defaultSource={require("../../assets/images/avatar-placeholder.jpg")}
             />
             <View style={$nameInfo}>
               <Text style={$userName}>{currentUser.name}</Text>
@@ -285,6 +260,32 @@ export const MatchScreen: FC<MatchScreenProps> = ({ navigation }) => {
             </View>
           </View>
         </View>
+        <View style={$photoSection}>
+                  <FlatList
+                    ref={photoScrollRef}
+                    data={currentUser.photos}
+                    renderItem={renderPhoto}
+                    keyExtractor={(item, index) => index.toString()}
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    onScroll={onPhotoScroll}
+                    scrollEventThrottle={16}
+                  />
+
+                  {/* 照片指示器 */}
+                  <View style={$photoDotsContainer}>
+                    {currentUser.photos.map((_, index: number) => (
+                      <View
+                        key={index}
+                        style={[
+                          $photoDot,
+                          index === currentPhotoIndex ? $photoDotActive : $photoDotInactive
+                        ]}
+                      />
+                    ))}
+                  </View>
+                </View>
       </ScrollView>
 
       {/* 底部操作按钮 */}
@@ -296,8 +297,8 @@ export const MatchScreen: FC<MatchScreenProps> = ({ navigation }) => {
           accessibilityRole="button"
           accessibilityLabel="Pass this person"
         >
-          <Text style={$passButtonIcon}>👋</Text>
-          <Text style={$passButtonText}>Pass</Text>
+          <Text style={$passButtonIcon}>⏭️</Text>
+          <Text style={$passButtonText}>Skip</Text>
         </Pressable>
 
         <Pressable
@@ -311,16 +312,6 @@ export const MatchScreen: FC<MatchScreenProps> = ({ navigation }) => {
           <Text style={$messageButtonText}>Message</Text>
         </Pressable>
 
-        <Pressable
-          style={$likeButton}
-          onPress={handleLike}
-          accessible
-          accessibilityRole="button"
-          accessibilityLabel="Like this person"
-        >
-          <Text style={$likeButtonIcon}>❤️</Text>
-          <Text style={$likeButtonText}>Like</Text>
-        </Pressable>
       </View>
     </Screen>
   )
