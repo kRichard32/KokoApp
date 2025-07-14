@@ -86,14 +86,14 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
   /** ====== 语音处理函数 ====== */
   const mockVoiceRecognition = () => {
     const sampleTexts = [
-      "I want to talk to Emma",
-      "Show me today's reminders", 
-      "Find my friends",
-      "Open chat messages",
-      "What events are coming up",
-      "Help me with medication",
-      "Call my family",
-      "Schedule a doctor appointment"
+      "I want to talk to Mary",
+      // "Show me today's reminders", 
+      // "Find my friends",
+      // "Open chat messages",
+      // "What events are coming up",
+      // "Help me with medication",
+      // "Call my family",
+      // "Schedule a doctor appointment"
     ]
     
     const randomText = sampleTexts[Math.floor(Math.random() * sampleTexts.length)]
@@ -118,25 +118,48 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
         })
       ]).start()
       
-      // 5秒后自动清除文字
+      // AI智能助理行为：处理语音指令
       setTimeout(() => {
-        Animated.parallel([
-          Animated.timing(textOpacityAnim, {
-            toValue: 0,
-            duration: 400,
-            useNativeDriver: true,
-          }),
-          Animated.spring(scaleAnim, {
-            toValue: 1,
-            useNativeDriver: true,
-            tension: 100,
-            friction: 8,
-          })
-        ]).start(() => {
-          setRecognizedText("")
-        })
-      }, 5000) // 延长显示时间让老年人有足够时间阅读
+        handleVoiceCommand(randomText)
+      }, 1500) // 显示文字1.5秒后执行指令
+      
     }, 800 + Math.random() * 1200) // 稍微缩短处理时间
+  }
+
+  /** ====== AI智能助理指令处理 ====== */
+  const handleVoiceCommand = (command: string) => {
+    const lowerCommand = command.toLowerCase()
+    
+    if (lowerCommand.includes("talk to mary") || lowerCommand.includes("mary")) {
+      // 淡出当前界面并跳转到Mary的聊天
+      Animated.parallel([
+        Animated.timing(textOpacityAnim, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 100,
+          friction: 8,
+        })
+      ]).start(() => {
+        setRecognizedText("")
+        // 跳转到Mary Floyd的聊天界面
+        navigation.navigate("ChatDetail", {
+          contactId: "mary-floyd",
+          contactName: "Mary Floyd"
+        })
+      })
+    }
+    // 可以在这里添加更多语音指令处理
+    // else if (lowerCommand.includes("reminders")) {
+    //   navigation.navigate("Reminders")
+    // }
+    // else if (lowerCommand.includes("friends")) {
+    //   navigation.navigate("Match")
+    // }
   }
 
   const startRecording = () => {
@@ -370,7 +393,12 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
                   </View>
                   <Text style={$siriResultText}>"{recognizedText}"</Text>
                   <View style={$siriResultActions}>
-                    <Text style={$siriResultHint}>Processing your request...</Text>
+                    <Text style={$siriResultHint}>
+                      {recognizedText.toLowerCase().includes("mary") 
+                        ? "Opening chat with Mary..." 
+                        : "Processing your request..."
+                      }
+                    </Text>
                   </View>
                 </Animated.View>
               )
