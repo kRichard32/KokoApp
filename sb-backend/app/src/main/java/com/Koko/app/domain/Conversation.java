@@ -2,19 +2,22 @@ package com.Koko.app.domain;
 
 import jakarta.persistence.*;
 
-import java.sql.Date;
-import java.util.ArrayList;
+import java.util.Set;
 
 @Entity
 public class Conversation {
     @Column(unique=true)
     @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private int id;
 
     private int messageCount;
 
+    @ManyToMany
+    private Set<Profile> users;
+
     @OneToMany
-    private ArrayList<Message> messages;
+    private Set<Message> messages;
 
     public int getId() {
         return id;
@@ -32,11 +35,27 @@ public class Conversation {
         this.messageCount = messageCount;
     }
 
-    public ArrayList<Message> getConversation() {
+    public Set<Message> getConversation() {
         return messages;
     }
 
-    public void setConversation(ArrayList<Message> messages) {
+    public void setConversation(Set<Message> messages) {
+        this.messages = messages;
+    }
+
+    public Set<Profile> getUsers() {
+        return users;
+    }
+
+    public void setUsers(Set<Profile> users) {
+        this.users = users;
+    }
+
+    public Set<Message> getMessages() {
+        return messages;
+    }
+
+    public void setMessages(Set<Message> messages) {
         this.messages = messages;
     }
 }

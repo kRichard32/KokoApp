@@ -17,6 +17,7 @@ public class UserKoko {
 
 
     @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private String id;
 
     @OneToOne

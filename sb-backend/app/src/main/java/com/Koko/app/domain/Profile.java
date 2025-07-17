@@ -2,17 +2,20 @@ package com.Koko.app.domain;
 
 import jakarta.persistence.*;
 
-import java.sql.Date;
-import java.util.ArrayList;
+import java.util.Set;
 
 @Entity
 public class Profile {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
-    @ManyToMany
-    private ArrayList<Trait> trait;
+    @ManyToMany(mappedBy = "profiles", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    private Set<Trait> traits;
+
+    @ManyToMany(mappedBy = "users", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    private Set<Conversation> conversations;
 
     public Long getId() {
         return id;
@@ -22,11 +25,22 @@ public class Profile {
         this.id = id;
     }
 
-    public ArrayList<Trait> getTrait() {
-        return trait;
+    public Set<Trait> getTraits() {
+        return traits;
     }
 
-    public void setTrait(ArrayList<Trait> trait) {
-        this.trait = trait;
+    public void setTraits(Set<Trait> traits) {
+        this.traits = traits;
+    }
+    public void addTrait(Trait trait) {
+        this.traits.add(trait);
+    }
+
+    public Set<Conversation> getConversations() {
+        return conversations;
+    }
+
+    public void setConversations(Set<Conversation> conversations) {
+        this.conversations = conversations;
     }
 }

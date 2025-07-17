@@ -2,18 +2,19 @@ package com.Koko.app.domain;
 
 import jakarta.persistence.*;
 
-import java.util.ArrayList;
+import java.util.Set;
 
 @Entity
 public class Trait {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
     private String traitName;
 
     @ManyToMany
-    private ArrayList<Profile> profiles;
+    private Set<Profile> profiles;
 
     public Long getId() {
         return id;
@@ -31,11 +32,11 @@ public class Trait {
         this.traitName = traitName;
     }
 
-    public ArrayList<Profile> getProfiles() {
+    public Set<Profile> getProfiles() {
         return profiles;
     }
 
-    public void setProfiles(ArrayList<Profile> profiles) {
+    public void setProfiles(Set<Profile> profiles) {
         this.profiles = profiles;
     }
 }

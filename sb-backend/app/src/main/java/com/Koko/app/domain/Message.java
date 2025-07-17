@@ -8,6 +8,7 @@ import java.sql.Date;
 public class Message {
     @Column(unique=true)
     @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private int id;
 
     @OneToOne
@@ -22,17 +23,6 @@ public class Message {
     @ManyToOne
     private Conversation conversation;
 
-
-    public Message(Profile sender, Date timestamp, String audioPath, String audioTranscription, Conversation conversation) {
-        this.sender = sender;
-        this.timestamp = timestamp;
-        this.audioPath = audioPath;
-        this.audioTranscription = audioTranscription;
-        this.conversation = conversation;
-    }
-
-    public Message() {
-    }
 
     public int getId() {
         return id;
