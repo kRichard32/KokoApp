@@ -14,7 +14,7 @@ public class TraitService {
     public void save(Trait trait) {
         traitRepository.save(trait);
     }
-    public Optional<Trait> getMessage(int id) {
+    public Optional<Trait> getTrait(int id) {
         return traitRepository.findById(id);
     }
     public Optional<Trait> getTraitByName(String name) {

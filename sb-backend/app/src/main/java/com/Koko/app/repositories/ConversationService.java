@@ -11,10 +11,10 @@ public class ConversationService {
     @Autowired
     ConversationRepository conversationRepository;
 
-    public void save(Conversation message) {
-        conversationRepository.save(message);
+    public void save(Conversation conversation) {
+        conversationRepository.save(conversation);
     }
-    public Optional<Conversation> getMessage(int id) {
+    public Optional<Conversation> getConversation(int id) {
         return conversationRepository.findById(id);
     }
 

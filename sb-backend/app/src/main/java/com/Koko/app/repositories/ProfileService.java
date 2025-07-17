@@ -11,10 +11,10 @@ public class ProfileService {
     @Autowired
     ProfileRepository profileRepository;
 
-    public void save(Profile message) {
-        profileRepository.save(message);
+    public void save(Profile profile) {
+        profileRepository.save(profile);
     }
-    public Optional<Profile> getMessage(int id) {
+    public Optional<Profile> getProfile(int id) {
         return profileRepository.findById(id);
     }
 
