@@ -210,7 +210,7 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
             useNativeDriver: false,
           }),
         ])
-      )
+      );
     }
 
     createWaveAnimation(waveAnim1, 0).start()
@@ -482,8 +482,8 @@ const $greetingRow: ViewStyle = {
 
 const $headline: ThemedStyle<TextStyle> = ({ spacing }) => ({
   marginBottom: spacing.xl,
-  fontSize: 42,
-  lineHeight: 52,
+  fontSize: 54,
+  lineHeight: 64,
   fontWeight: 'bold',
 })
 
@@ -504,6 +504,7 @@ const $card: ViewStyle = {
 
 const $cardLabel: TextStyle = {
   marginTop: 8,
+  fontSize: 24,
 }
 
 const $voicePromptCard: ViewStyle = {
@@ -530,13 +531,14 @@ const $voicePromptHeader: ViewStyle = {
 }
 
 const $voicePromptIcon: TextStyle = {
-  fontSize: 18,
+  fontSize: 28,
   marginRight: 8,
 }
 
 const $voicePromptTitle: TextStyle = {
   color: "#374151",
   fontWeight: "600",
+  fontSize: 22,
 }
 
 const $voicePromptExamples: ViewStyle = {
@@ -544,10 +546,10 @@ const $voicePromptExamples: ViewStyle = {
 }
 
 const $voicePromptExample: TextStyle = {
-  fontSize: 14,
+  fontSize: 18,
   color: "#6B7280",
   fontStyle: "italic",
-  lineHeight: 20,
+  lineHeight: 26,
 }
 
 const $voiceButton: ViewStyle = {
@@ -571,10 +573,12 @@ const $voiceButton: ViewStyle = {
 
 const $voiceIcon: TextStyle = {
   marginRight: 12,
+  fontSize:40,
 }
 
 const $voiceLabel: TextStyle = {
-  color: "#2D5016", // 深绿色，老年人友好
+  color: "#2D5016",
+  fontSize: 24,
 }
 
 const $cancelButton: ViewStyle = {
@@ -656,7 +660,7 @@ const $siriWaveBar: ViewStyle = {
 }
 
 const $siriProcessingText: TextStyle = {
-  fontSize: 20,
+  fontSize: 28,
   fontWeight: "500",
   color: "#1D1D1F",
   textAlign: "center",
@@ -693,17 +697,17 @@ const $siriResultIcon: TextStyle = {
 }
 
 const $siriResultTitle: TextStyle = {
-  fontSize: 18,
+  fontSize: 26,
   fontWeight: "600",
   color: "#8E8E93",
 }
 
 const $siriResultText: TextStyle = {
-  fontSize: 28, // 大字体，老年人友好
+  fontSize: 38,
   fontWeight: "600",
   color: "#1D1D1F",
   textAlign: "center",
-  lineHeight: 36,
+  lineHeight: 46,
   marginBottom: 24,
   letterSpacing: 0.5,
 }
@@ -713,7 +717,7 @@ const $siriResultActions: ViewStyle = {
 }
 
 const $siriResultHint: TextStyle = {
-  fontSize: 16,
+  fontSize: 22,
   fontWeight: "500",
   color: "#007AFF",
   textAlign: "center",
