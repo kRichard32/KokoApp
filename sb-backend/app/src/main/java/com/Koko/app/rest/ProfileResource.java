@@ -40,4 +40,15 @@ public class ProfileResource {
         map.put("id", profile.getId().toString());
         return map;
     }
+
+    @CrossOrigin()
+    @PostMapping("/addTrait")
+    public Map<String, String> addTrait(@RequestBody ProfileTransfer profileData) {
+        List<String> traits = profileData.getTraits();
+
+        HashMap<String, String> map = new HashMap<>();
+
+        map.put("", "");
+        return map;
+    }
 }
