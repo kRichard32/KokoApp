@@ -11,10 +11,10 @@ public class UserService {
     @Autowired
     UserRepository userRepository;
 
-    public void save(UserKoko message) {
-        userRepository.save(message);
+    public void save(UserKoko userKoko) {
+        userRepository.save(userKoko);
     }
-    public Optional<UserKoko> getMessage(int id) {
+    public Optional<UserKoko> getUser(int id) {
         return userRepository.findById(id);
     }
 
