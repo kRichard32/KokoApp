@@ -21,6 +21,7 @@ import { VideoCallScreen } from "@/screens/VideoCallScreen"
 import { MatchScreen } from "@/screens/MatchScreen"
 import { EventsScreen } from "@/screens/EventsScreen"
 import { RemindersScreen } from "@/screens/RemindersScreen"
+import { HealthCheckScreen } from "@/screens/HealthCheckScreen"
 
 import { DemoNavigator, DemoTabParamList } from "./DemoNavigator"
 import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
@@ -51,6 +52,7 @@ export type AppStackParamList = {
   Match: undefined
   Events: undefined
   Reminders: undefined
+  HealthCheck: undefined
   // 🔥 Your screens go here
   // IGNITE_GENERATOR_ANCHOR_APP_STACK_PARAM_LIST
 }
@@ -103,6 +105,7 @@ const AppStack = () => {
           <Stack.Screen name="Match" component={MatchScreen} />
           <Stack.Screen name="Events" component={EventsScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Reminders" component={RemindersScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="HealthCheck" component={HealthCheckScreen} options={{ headerShown: false }} />
           
           <Stack.Screen name="Welcome" component={WelcomeScreen} />
 
