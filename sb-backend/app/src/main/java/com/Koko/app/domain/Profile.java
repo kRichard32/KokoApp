@@ -1,7 +1,11 @@
 package com.Koko.app.domain;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -11,11 +15,16 @@ public class Profile {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
-    @ManyToMany(mappedBy = "profiles", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    private Set<Trait> traits;
+    @JsonManagedReference
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(name = "profile_traits", joinColumns = {@JoinColumn(name = "profiles_id")}, inverseJoinColumns = {@JoinColumn(name = "traits_id")})
+    private List<Trait> traits = new ArrayList<>();
 
+    @JsonBackReference
     @ManyToMany(mappedBy = "users", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private Set<Conversation> conversations;
+
+    private String profilePicture;
 
     public Long getId() {
         return id;
@@ -25,15 +34,18 @@ public class Profile {
         this.id = id;
     }
 
-    public Set<Trait> getTraits() {
+    public List<Trait> getTraits() {
         return traits;
     }
 
-    public void setTraits(Set<Trait> traits) {
+    public void setTraits(List<Trait> traits) {
         this.traits = traits;
     }
     public void addTrait(Trait trait) {
         this.traits.add(trait);
+    }
+    public void addTraits(List<Trait> traits) {
+        this.traits.addAll(traits);
     }
 
     public Set<Conversation> getConversations() {
@@ -42,5 +54,13 @@ public class Profile {
 
     public void setConversations(Set<Conversation> conversations) {
         this.conversations = conversations;
+    }
+
+    public String getProfilePicture() {
+        return profilePicture;
+    }
+
+    public void setProfilePicture(String profilePicture) {
+        this.profilePicture = profilePicture;
     }
 }

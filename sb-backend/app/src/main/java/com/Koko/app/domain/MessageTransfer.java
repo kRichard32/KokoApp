@@ -6,23 +6,13 @@ import java.sql.Date;
 
 public class MessageTransfer {
 
-    private int id;
-
-    private String profileID;
+    private int profileID;
 
     private String audioPath;
 
     private String audioTranscription;
 
-    private String conversationID;
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
+    private int conversationID;
 
     public String getAudioPath() {
         return audioPath;
@@ -40,19 +30,19 @@ public class MessageTransfer {
         this.audioTranscription = audioTranscription;
     }
 
-    public String getProfileID() {
+    public int getProfileID() {
         return profileID;
     }
 
-    public void setProfileID(String profileID) {
+    public void setProfileID(int profileID) {
         this.profileID = profileID;
     }
 
-    public String getConversationID() {
+    public int getConversationID() {
         return conversationID;
     }
 
-    public void setConversationID(String conversationID) {
+    public void setConversationID(int conversationID) {
         this.conversationID = conversationID;
     }
 }

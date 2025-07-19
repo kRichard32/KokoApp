@@ -10,11 +10,9 @@ import com.Koko.app.repositories.TraitService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/profile")
@@ -45,10 +43,17 @@ public class ProfileResource {
     @PostMapping("/addTrait")
     public Map<String, String> addTrait(@RequestBody ProfileTransfer profileData) {
         List<String> traits = profileData.getTraits();
-
+        Profile profile = profileService.getProfile(profileData.getId());
         HashMap<String, String> map = new HashMap<>();
+        profile.addTraits(traitService.getTraits(traits));
+        profileService.save(profile);
 
-        map.put("", "");
+        map.put("id", profile.getId().toString());
         return map;
+    }
+    @CrossOrigin()
+    @GetMapping("/getProfile")
+    public Profile getProfile(@RequestParam("id") int id) {
+        return profileService.getProfile(id);
     }
 }

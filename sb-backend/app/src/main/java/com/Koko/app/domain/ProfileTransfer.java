@@ -10,17 +10,19 @@ import jakarta.persistence.ManyToMany;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.Koko.app.domain.jsonTools.getStrings;
+
 public class ProfileTransfer {
 
-    private Long id;
+    private int id;
 
     private String jsonTraits;
 
-    public Long getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(int id) {
         this.id = id;
     }
 
@@ -29,14 +31,7 @@ public class ProfileTransfer {
     }
 
     public List<String> getTraits() {
-        ObjectMapper mapper = new ObjectMapper();
-        List<String> result;
-        try{
-            result = mapper.readValue(jsonTraits, new TypeReference<>(){});
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-        return result;
+        return getStrings(jsonTraits);
     }
 
 }
