@@ -1,13 +1,5 @@
-package com.Koko.app.domain;
+package com.Koko.app.dataTransfer;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
-
-import java.util.ArrayList;
 import java.util.List;
 
 import static com.Koko.app.domain.jsonTools.getStrings;

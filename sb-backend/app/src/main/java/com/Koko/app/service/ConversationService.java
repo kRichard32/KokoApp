@@ -1,12 +1,11 @@
-package com.Koko.app.repositories;
+package com.Koko.app.service;
 
 import com.Koko.app.domain.Conversation;
+import com.Koko.app.repositories.ConversationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.util.Optional;
 
 @Service
 public class ConversationService {

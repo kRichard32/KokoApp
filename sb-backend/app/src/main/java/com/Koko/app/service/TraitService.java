@@ -1,6 +1,7 @@
-package com.Koko.app.repositories;
+package com.Koko.app.service;
 
 import com.Koko.app.domain.Trait;
+import com.Koko.app.repositories.TraitRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

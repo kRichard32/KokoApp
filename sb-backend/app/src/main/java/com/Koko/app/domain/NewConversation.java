@@ -1,5 +1,8 @@
 package com.Koko.app.domain;
 
+import com.Koko.app.dataTransfer.ConversationTransfer;
+import com.Koko.app.dataTransfer.MessageTransfer;
+
 public class NewConversation {
     private ConversationTransfer conversationTransfer;
     private MessageTransfer messageTransfer;

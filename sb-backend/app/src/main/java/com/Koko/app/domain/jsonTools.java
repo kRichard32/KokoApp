@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 
 public class jsonTools {
-    static List<String> getStrings(String jsonString) {
+    public static List<String> getStrings(String jsonString) {
         ObjectMapper mapper = new ObjectMapper();
         List<String> result;
         try{

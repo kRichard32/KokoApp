@@ -1,4 +1,4 @@
-package com.Koko.app.repositories;
+package com.Koko.app.service;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
