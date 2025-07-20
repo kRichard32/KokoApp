@@ -6,19 +6,24 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 /**
  * A user.
  */
 @Entity
-public class UserKoko {
-
+public class UserKoko implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    private String id;
+    private Long id;
 
     @OneToOne
     private Profile profile;
@@ -27,7 +32,15 @@ public class UserKoko {
     @Pattern(regexp = Constants.LOGIN_REGEX)
     @Size(min = 1, max = 50)
     @Column(length = 50, unique = true, nullable = false)
-    private String login;
+    private String username;
+
+    @Email
+    @Size(min = 5, max = 254)
+    @Column(length = 254, unique = true)
+    private String email;
+
+    @Column(nullable = false)
+    private String password;
 
     @Size(max = 50)
     @Column(name = "first_name", length = 50)
@@ -37,39 +50,66 @@ public class UserKoko {
     @Column(name = "last_name", length = 50)
     private String lastName;
 
-    @Email
-    @Size(min = 5, max = 254)
-    @Column(length = 254, unique = true)
-    private String email;
-
     @NotNull
     @Column(nullable = false)
     private boolean activated = false;
 
-    @Size(min = 2, max = 10)
-    @Column(name = "lang_key", length = 10)
-    private String langKey;
+    @Column(name = "verification_code")
+    private String verificationCode;
 
-    @Size(max = 256)
-    @Column(name = "image_url", length = 256)
-    private String imageUrl;
+    @Column(name = "verification_expiration")
+    private LocalDateTime verificationCodeExpiresAt;
 
 
-    public String getId() {
+    public UserKoko(String username, String email, String password) {
+        this.username = username;
+        this.email = email;
+        this.password = password;
+    }
+    public UserKoko() {}
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of();
+    }
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+    @Override
+    public boolean isEnabled() {
+        return activated;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+    public String getPassword() {
+        return password;
+    }
+    public Long getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public String getLogin() {
-        return login;
+    public String getUsername() {
+        return username;
     }
 
     // Lowercase the login before saving it in database
-    public void setLogin(String login) {
-        this.login = StringUtils.lowerCase(login, Locale.ENGLISH);
+    public void setUsername(String username) {
+        this.username = StringUtils.lowerCase(username, Locale.ENGLISH);
     }
 
     public String getFirstName() {
@@ -96,13 +136,6 @@ public class UserKoko {
         this.email = email;
     }
 
-    public String getImageUrl() {
-        return imageUrl;
-    }
-
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
 
     public boolean isActivated() {
         return activated;
@@ -112,13 +145,6 @@ public class UserKoko {
         this.activated = activated;
     }
 
-    public String getLangKey() {
-        return langKey;
-    }
-
-    public void setLangKey(String langKey) {
-        this.langKey = langKey;
-    }
 
     public Profile getProfile() {
         return profile;
@@ -142,17 +168,31 @@ public class UserKoko {
         return getClass().hashCode();
     }
 
+    public String getVerificationCode() {
+        return verificationCode;
+    }
+
+    public void setVerificationCode(String verificationCode) {
+        this.verificationCode = verificationCode;
+    }
+
+    public LocalDateTime getVerificationCodeExpiresAt() {
+        return verificationCodeExpiresAt;
+    }
+
+    public void setVerificationCodeExpiresAt(LocalDateTime verificationCodeExpiresAt) {
+        this.verificationCodeExpiresAt = verificationCodeExpiresAt;
+    }
+
     // prettier-ignore
     @Override
     public String toString() {
         return "User{" +
-                "login='" + login + '\'' +
+                "username='" + username + '\'' +
                 ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +
                 ", email='" + email + '\'' +
-                ", imageUrl='" + imageUrl + '\'' +
                 ", activated='" + activated + '\'' +
-                ", langKey='" + langKey + '\'' +
                 "}";
     }
 }

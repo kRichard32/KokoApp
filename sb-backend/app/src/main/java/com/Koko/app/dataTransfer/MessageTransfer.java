@@ -1,8 +1,4 @@
-package com.Koko.app.domain;
-
-import jakarta.persistence.*;
-
-import java.sql.Date;
+package com.Koko.app.dataTransfer;
 
 public class MessageTransfer {
 

@@ -1,11 +1,12 @@
 package com.Koko.app.rest;
 
 
+import com.Koko.app.dataTransfer.MessageTransfer;
 import com.Koko.app.domain.*;
-import com.Koko.app.repositories.ConversationService;
-import com.Koko.app.repositories.FileService;
-import com.Koko.app.repositories.MessageService;
-import com.Koko.app.repositories.ProfileService;
+import com.Koko.app.service.ConversationService;
+import com.Koko.app.service.FileService;
+import com.Koko.app.service.MessageService;
+import com.Koko.app.service.ProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -15,7 +16,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/messages")
-public class MessageResource {
+public class MessageController {
     @Autowired
     private MessageService messageService;
 
