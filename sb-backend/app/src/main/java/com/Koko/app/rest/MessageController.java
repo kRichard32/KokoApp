@@ -86,13 +86,13 @@ public class MessageController {
     @CrossOrigin()
     @GetMapping("/getMessageAudio")
     public byte[] getMessageAudio(@CookieValue(value = "token", required = false) String token,
-                                  @RequestParam("id") int id) {
+                                  @RequestParam("id") int messageId) {
         Map<String, Object> userInfo = jwtService.decodeIdToken(token);
-        Message message = messageService.getMessage(id).orElse(null);
+        Message message = messageService.getMessage(messageId).orElse(null);
         if (message == null) {
             return null;
         }
-        Conversation conversation = conversationService.getConversationByMessageID(id);
+        Conversation conversation = conversationService.getConversationByMessageID(messageId);
         List<Profile> profiles = conversation.getUsers();
         Profile profile = profileService.getProfileByEmail((String) userInfo.get("email"));
 

@@ -75,7 +75,6 @@ public class ProfileController {
     public Profile getUserProfile(
             @CookieValue(value = "token", required = false) String token) {
         Map<String, Object> userInfo = jwtService.decodeIdToken(token);
-        Profile profile = profileService.getProfileByEmail((String) userInfo.get("email"));
-        return profile;
+        return profileService.getProfileByEmail((String) userInfo.get("email"));
     }
 }
