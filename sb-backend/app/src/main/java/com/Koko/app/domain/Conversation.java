@@ -1,7 +1,10 @@
 package com.Koko.app.domain;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
+import java.sql.Date;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -13,11 +16,15 @@ public class Conversation {
 
     private int messageCount;
 
-    @ManyToMany
-    private Set<Profile> users;
+    private Date timestamp;
 
-    @OneToMany
-    private Set<Message> messages;
+    @JsonManagedReference
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    private List<Profile> users;
+
+    @JsonManagedReference
+    @OneToMany(cascade = CascadeType.ALL)
+    private List<Message> messages;
 
     public int getId() {
         return id;
@@ -35,27 +42,37 @@ public class Conversation {
         this.messageCount = messageCount;
     }
 
-    public Set<Message> getConversation() {
-        return messages;
+    public void incrementMessageCount() {
+        this.messageCount = messageCount + 1;
     }
 
-    public void setConversation(Set<Message> messages) {
-        this.messages = messages;
-    }
-
-    public Set<Profile> getUsers() {
+    public List<Profile> getUsers() {
         return users;
     }
 
-    public void setUsers(Set<Profile> users) {
+    public void setUsers(List<Profile> users) {
         this.users = users;
     }
 
-    public Set<Message> getMessages() {
+    public List<Message> getMessages() {
         return messages;
     }
 
-    public void setMessages(Set<Message> messages) {
+    public void setMessages(List<Message> messages) {
         this.messages = messages;
+    }
+    public void addMessage(Message message) {
+        this.messages.add(message);
+    }
+
+    public Date getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Date timestamp) {
+        this.timestamp = timestamp;
+    }
+    public void setTimestampToCurrentTime() {
+        this.timestamp = new Date(System.currentTimeMillis());
     }
 }

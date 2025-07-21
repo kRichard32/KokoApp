@@ -1,7 +1,7 @@
 {
   "name": "KindialApp",
   "slug": "KindialApp",
-  "scheme": "kindialapp",
+  "scheme": "kindial",
   "version": "1.0.0",
   "orientation": "portrait",
   "userInterfaceStyle": "automatic",

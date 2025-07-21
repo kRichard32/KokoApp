@@ -1,6 +1,9 @@
-package com.Koko.app.domain;
+package com.Koko.app.dataTransfer;
 
 
+import java.util.List;
+
+import static com.Koko.app.domain.jsonTools.getStrings;
 
 public class ConversationTransfer {
 
@@ -17,8 +20,8 @@ public class ConversationTransfer {
         this.id = id;
     }
 
-    public String getJsonUsers() {
-        return jsonUsers;
+    public List<String> getUserIDs() {
+        return getStrings(jsonUsers);
     }
 
     public void setJsonUsers(String jsonUsers) {

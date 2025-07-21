@@ -1,6 +1,7 @@
-package com.Koko.app.repositories;
+package com.Koko.app.service;
 
 import com.Koko.app.domain.Trait;
+import com.Koko.app.repositories.TraitRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -30,8 +31,8 @@ public class TraitService {
         save(newTrait);
         return newTrait;
     }
-    public Set<Trait> getTraits(List<String> traitsNames) {
-        Set<Trait> traits = new HashSet<>();
+    public List<Trait> getTraits(List<String> traitsNames) {
+        List<Trait> traits = new ArrayList<>();
         for (String traitsName : traitsNames) {
             Trait trait = getTraitByName(traitsName).orElse(null);
             if (trait != null) {

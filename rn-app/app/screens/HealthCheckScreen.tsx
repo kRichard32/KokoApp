@@ -16,6 +16,7 @@ import { Text } from "@/components/Text"
 import type { AppStackScreenProps } from "@/navigators/AppNavigator"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { useAuth } from "@/context/AuthContext"
 
 interface HealthCheckScreenProps extends AppStackScreenProps<"HealthCheck"> {}
 
@@ -44,6 +45,8 @@ export const HealthCheckScreen: FC<HealthCheckScreenProps> = ({ navigation }) =>
     themed,
     theme: { colors, spacing },
   } = useAppTheme()
+  const { logout } = useAuth()
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   // 健康问题数据 - 简化为只有英文
   const healthQuestions: HealthQuestion[] = [
@@ -191,6 +194,20 @@ export const HealthCheckScreen: FC<HealthCheckScreenProps> = ({ navigation }) =>
     }, 2000 + Math.random() * 2000)
   }
 
+  // 处理登出
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      await logout()
+      Alert.alert("Logged Out", "You have been successfully logged out.")
+    } catch (error) {
+      console.error('Logout error:', error)
+      Alert.alert("Logout Error", "Failed to logout. Please try again.")
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
+
   // 渲染开始页面 - 专注语音交互
   const renderStartPage = () => (
     <View style={$startContainer}>
@@ -226,6 +243,19 @@ export const HealthCheckScreen: FC<HealthCheckScreenProps> = ({ navigation }) =>
           Voice recording will start automatically.{"\n"}
           No buttons to press - just speak your answers!
         </Text>
+
+        <Pressable
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel="Logout"
+          onPress={handleLogout}
+          disabled={isLoggingOut}
+          style={$logoutButton}
+        >
+          <Text style={$logoutButtonText}>
+            {isLoggingOut ? "Logging out..." : "🚪 Logout"}
+          </Text>
+        </Pressable>
       </View>
     </View>
   )
@@ -550,6 +580,29 @@ const $startNote: TextStyle = {
   color: "#6B7280",
   textAlign: "center",
   fontStyle: "italic",
+}
+
+const $logoutButton: ViewStyle = {
+  backgroundColor: "#EF4444",
+  paddingVertical: 16,
+  paddingHorizontal: 32,
+  borderRadius: 12,
+  marginTop: 24,
+  shadowColor: "#000",
+  shadowOffset: {
+    width: 0,
+    height: 2,
+  },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  elevation: 4,
+}
+
+const $logoutButtonText: TextStyle = {
+  fontSize: 18,
+  fontWeight: "bold",
+  color: "#FFFFFF",
+  textAlign: "center",
 }
 
 // 语音指导样式 - 更大更清晰的适老化设计，移除麦克风图标

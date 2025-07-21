@@ -1,5 +1,6 @@
 package com.Koko.app.domain;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 import java.sql.Date;
@@ -11,7 +12,8 @@ public class Message {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private int id;
 
-    @OneToOne
+    @JsonBackReference
+    @ManyToOne
     private Profile sender;
 
     private Date timestamp;
@@ -20,6 +22,7 @@ public class Message {
 
     private String audioTranscription;
 
+    @JsonBackReference
     @ManyToOne
     private Conversation conversation;
 
@@ -70,5 +73,8 @@ public class Message {
 
     public void setConversation(Conversation conversation) {
         this.conversation = conversation;
+    }
+    public void setTimestampToCurrentTime() {
+        this.timestamp = new Date(System.currentTimeMillis());
     }
 }

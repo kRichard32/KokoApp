@@ -8,9 +8,6 @@ from pathlib import Path
 import json
 import re
 
-import OnnxClient
-
-
 class WebRequestHandler(BaseHTTPRequestHandler):
     @cached_property
     def url(self):
@@ -51,26 +48,12 @@ class WebRequestHandler(BaseHTTPRequestHandler):
         dir_path = dir_path + "/file_storage/" + path
         with open(dir_path, 'rb') as f:
             return f.read()
-    def grab_data(self):
+    def do_GET(self):
         self.send_response(200)
         self.send_header('Content-type', 'application/pdf')
         self.send_header('Content-Disposition', 'attachment; filename="file.pdf"')
         self.end_headers()
         self.wfile.write(self.get_data(self.path))
-
-    def classify(self):
-        data_path = self.query_data["filePath"]
-        image_path = "file_storage/" + data_path
-        answer = OnnxClient.run_classification(image_path=image_path)
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
-        self.wfile.write(answer.encode('ascii'))
-    def do_GET(self):
-        if self.path.startswith("/classify"):
-            self.classify()
-        else:
-            self.grab_data()
 
     def do_POST(self):
         content_length = int(self.headers['Content-Length'])
