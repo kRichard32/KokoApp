@@ -3,10 +3,7 @@ package com.Koko.app.rest;
 
 import com.Koko.app.dataTransfer.MessageTransfer;
 import com.Koko.app.domain.*;
-import com.Koko.app.service.ConversationService;
-import com.Koko.app.service.FileService;
-import com.Koko.app.service.MessageService;
-import com.Koko.app.service.ProfileService;
+import com.Koko.app.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +25,9 @@ public class MessageController {
 
     @Autowired
     private ProfileService profileService;
+
+    @Autowired
+    private JwtService jwtService;
 
     @ResponseStatus(value = HttpStatus.OK)
 
@@ -77,9 +77,37 @@ public class MessageController {
         return map;
     }
     @CrossOrigin()
-    @GetMapping("/getConversation")
-    public Conversation getConversation(@RequestParam("id") int id) {
-        return conversationService.getConversation(id);
+    @GetMapping("/getConversationByUser")
+    public List<Conversation> getConversation(@CookieValue(value = "token", required = false) String token) {
+        Map<String, Object> userInfo = jwtService.decodeIdToken(token);
+        Profile profile = profileService.getProfileByEmail((String) userInfo.get("email"));
+        return conversationService.getConversationsByID(profile.getId());
+    }
+    @CrossOrigin()
+    @GetMapping("/getMessageAudio")
+    public byte[] getMessageAudio(@CookieValue(value = "token", required = false) String token,
+                                  @RequestParam("id") int id) {
+        Map<String, Object> userInfo = jwtService.decodeIdToken(token);
+        Message message = messageService.getMessage(id).orElse(null);
+        if (message == null) {
+            return null;
+        }
+        Conversation conversation = conversationService.getConversationByMessageID(id);
+        List<Profile> profiles = conversation.getUsers();
+        Profile profile = profileService.getProfileByEmail((String) userInfo.get("email"));
+
+        boolean canSee = false;
+        for (Profile p : profiles) {
+            if (p.getId() == profile.getId()) {
+                canSee = true;
+                break;
+            }
+        }
+        if (canSee) {
+            return fileService.do_GET(message.getAudioPath());
+        }
+        return null;
+
     }
 
 

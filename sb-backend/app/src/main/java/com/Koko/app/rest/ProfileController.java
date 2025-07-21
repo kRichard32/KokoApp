@@ -68,9 +68,14 @@ public class ProfileController {
     }
     @GetMapping("/getProfile")
     public Profile getProfile(
-            @CookieValue(value = "token", required = false) String token,
             @RequestParam("id") int id) {
-        Map<String, Object> userInfo = jwtService.decodeIdToken(token);
         return profileService.getProfile(id);
+    }
+    @GetMapping("/getUserProfile")
+    public Profile getUserProfile(
+            @CookieValue(value = "token", required = false) String token) {
+        Map<String, Object> userInfo = jwtService.decodeIdToken(token);
+        Profile profile = profileService.getProfileByEmail((String) userInfo.get("email"));
+        return profile;
     }
 }

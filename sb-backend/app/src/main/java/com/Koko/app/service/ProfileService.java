@@ -35,5 +35,8 @@ public class ProfileService {
         }
         return profiles;
     }
+    public Profile getProfileByEmail(String email) {
+        return profileRepository.findByEmail(email).orElse(null);
+    }
 
 }
