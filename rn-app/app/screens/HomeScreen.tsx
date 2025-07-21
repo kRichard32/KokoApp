@@ -61,8 +61,6 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
 
   /** ====== 渲染函数 ====== */
   function renderActionCard({ key, emoji, tint, route }: (typeof ACTIONS)[number]) {
-    const textColor = (key === "Chat" || key === "Match") ? "#FFFFFF" : undefined
-    
     return (
       <Pressable
         key={key}
@@ -78,7 +76,7 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
         <Text size="xl" weight="bold">
           {emoji}
         </Text>
-        <Text preset="formLabel" size="md" style={[$cardLabel, { color: textColor }]}>
+        <Text preset="formLabel" size="md" style={$cardLabel}>
           {key}
         </Text>
       </Pressable>
