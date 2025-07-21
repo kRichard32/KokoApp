@@ -12,6 +12,8 @@ import Config from "@/config"
 import { useAuth } from "@/context/AuthContext"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
 import { LoginScreen } from "@/screens/LoginScreen"
+import { OAuthLoginScreen } from "@/screens/OAuthLoginScreen"
+import { OAuthCallbackScreen } from "@/screens/OAuthCallbackScreen"
 import { WelcomeScreen } from "@/screens/WelcomeScreen"
 import { useAppTheme } from "@/theme/context"
 import { HomeScreen } from "@/screens/HomeScreen"
@@ -38,6 +40,8 @@ import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
 export type AppStackParamList = {
   Welcome: undefined
   Login: undefined
+  OAuthLogin: undefined
+  OAuthCallback: undefined
   Demo: NavigatorScreenParams<DemoTabParamList>
   Home: undefined
   Message: undefined
@@ -72,11 +76,16 @@ export type AppStackScreenProps<T extends keyof AppStackParamList> = NativeStack
 const Stack = createNativeStackNavigator<AppStackParamList>()
 
 const AppStack = () => {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isLoading } = useAuth()
 
   const {
     theme: { colors },
   } = useAppTheme()
+
+  // Show loading screen while checking authentication
+  if (isLoading) {
+    return null // You can replace this with a loading component
+  }
 
   return (
     <Stack.Navigator
@@ -87,7 +96,7 @@ const AppStack = () => {
           backgroundColor: colors.background,
         },
       }}
-      initialRouteName={isAuthenticated ? "Home" : "Login"}
+      initialRouteName={isAuthenticated ? "Home" : "OAuthLogin"}
     >
       {isAuthenticated ? (
         <>
@@ -113,6 +122,8 @@ const AppStack = () => {
         </>
       ) : (
         <>
+          <Stack.Screen name="OAuthLogin" component={OAuthLoginScreen} />
+          <Stack.Screen name="OAuthCallback" component={OAuthCallbackScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
         </>
       )}

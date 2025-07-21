@@ -25,6 +25,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
 
 import { AuthProvider } from "./context/AuthContext"
+import { OAuthHandler } from "./components/OAuthHandler"
 import { initI18n } from "./i18n"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
@@ -35,13 +36,15 @@ import * as storage from "./utils/storage"
 
 export const NAVIGATION_PERSISTENCE_KEY = "NAVIGATION_STATE"
 
-// Web linking configuration
-const prefix = Linking.createURL("/")
+// Mobile linking configuration for OAuth callbacks
+const prefix = "kindial://"
 const config = {
   screens: {
-    Login: {
+    OAuthLogin: {
       path: "",
     },
+    OAuthCallback: "oauth-callback", // Handle kindial://oauth-callback
+    Login: "login",
     Welcome: "welcome",
     Demo: {
       screens: {
@@ -98,6 +101,7 @@ export function App() {
       <KeyboardProvider>
         <AuthProvider>
           <ThemeProvider>
+            <OAuthHandler />
             <AppNavigator
               linking={linking}
               initialState={initialNavigationState}

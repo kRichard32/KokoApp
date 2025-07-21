@@ -13,6 +13,7 @@ import {
   ScrollView,
   Animated,
 } from "react-native"
+import axios from "axios"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -20,6 +21,8 @@ import { TextField } from "@/components/TextField"
 import type { AppStackScreenProps } from "@/navigators/AppNavigator"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+
+const serverUrl = "http://10.0.2.2:8080"
 
 // 数据类型定义
 interface Doctor {
@@ -66,7 +69,35 @@ export const MessageScreen: FC<MessageScreenProps> = ({ navigation }) => {
   useEffect(() => {
     loadMockData()
     setupScrollAnimations()
+    fetchProfile()
   }, [])
+
+  // 获取用户个人资料
+  const fetchProfile = async () => {
+    try {
+      const response = await axios.get(`${serverUrl}/api/profile/getProfile?id=1`, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      console.log('Profile data:', response.data)
+    } catch (error) {
+      console.error('Failed to fetch profile:', error)
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          console.error('Response status:', error.response.status)
+          console.error('Response data:', error.response.data)
+        } else if (error.request) {
+          console.error('No response received:', error.request)
+        } else {
+          console.error('Error setting up request:', error.message)
+        }
+      } else {
+        console.error('Unexpected error:', error)
+      }
+    }
+  }
 
   // 设置滚动动画
   const setupScrollAnimations = () => {
