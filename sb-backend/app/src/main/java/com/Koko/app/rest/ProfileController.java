@@ -4,6 +4,7 @@ package com.Koko.app.rest;
 import com.Koko.app.domain.Profile;
 import com.Koko.app.dataTransfer.ProfileTransfer;
 import com.Koko.app.service.FileService;
+import com.Koko.app.service.JwtService;
 import com.Koko.app.service.ProfileService;
 import com.Koko.app.service.TraitService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,9 @@ public class ProfileController {
 
     @Autowired
     private FileService fileService;
+
+    @Autowired
+    private JwtService jwtService;
 
     @ResponseStatus(value = HttpStatus.OK)
 
@@ -63,7 +67,10 @@ public class ProfileController {
         return map;
     }
     @GetMapping("/getProfile")
-    public Profile getProfile(@RequestParam("id") int id) {
+    public Profile getProfile(
+            @CookieValue(value = "token", required = false) String token,
+            @RequestParam("id") int id) {
+        Map<String, Object> userInfo = jwtService.decodeIdToken(token);
         return profileService.getProfile(id);
     }
 }
