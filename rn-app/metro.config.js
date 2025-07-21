@@ -16,7 +16,6 @@ config.transformer.getTransformOptions = async () => ({
   },
 })
 
-config.transformer.assetRegistryPath = ["./app/assets", "./assets"]
 
 // This is a temporary fix that helps fixing an issue with axios/apisauce.
 // See the following issues in Github for more details:
