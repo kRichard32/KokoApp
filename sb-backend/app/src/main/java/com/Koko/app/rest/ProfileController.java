@@ -6,7 +6,6 @@ import com.Koko.app.dataTransfer.ProfileTransfer;
 import com.Koko.app.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -64,7 +63,7 @@ public class ProfileController {
         Map<String, Object> userInfo = jwtService.decodeIdToken(token);
         Profile profile = profileService.getProfileByEmail((String) userInfo.get("email"));
         String profilePicturePath = googleDriveFileService.do_POST(profilePicture);
-        profile.setProfilePicture(profilePicturePath);
+        profile.setProfilePictureId(profilePicturePath);
         HashMap<String, String> map = new HashMap<>();
         profileService.save(profile);
 
@@ -75,6 +74,14 @@ public class ProfileController {
     public Profile getProfile(
             @RequestParam("id") int id) {
         return profileService.getProfile(id);
+    }
+    @GetMapping("/getUserProfilePicture")
+    public byte[] getProfilePicture(
+            @CookieValue(value = "token", required = false) String token) {
+        Map<String, Object> userInfo = jwtService.decodeIdToken(token);
+        Profile profile = profileService.getProfileByEmail((String) userInfo.get("email"));
+
+        return googleDriveFileService.do_GET(profile.getProfilePictureId());
     }
     @GetMapping("/getUserProfile")
     public Profile getUserProfile(

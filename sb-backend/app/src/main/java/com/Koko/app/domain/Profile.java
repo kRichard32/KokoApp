@@ -29,7 +29,7 @@ public class Profile {
 
     private String name;
 
-    private String profilePicture;
+    private String profilePictureId;
 
     public Long getId() {
         return id;
@@ -61,12 +61,12 @@ public class Profile {
         this.conversations = conversations;
     }
 
-    public String getProfilePicture() {
-        return profilePicture;
+    public String getProfilePictureId() {
+        return profilePictureId;
     }
 
-    public void setProfilePicture(String profilePicture) {
-        this.profilePicture = profilePicture;
+    public void setProfilePictureId(String profilePicture) {
+        this.profilePictureId = profilePicture;
     }
 
     public String getEmail() {

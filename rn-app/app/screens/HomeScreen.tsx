@@ -38,6 +38,7 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
   const [isProcessing, setIsProcessing] = useState(false)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [userName, setUserName] = useState("Agnes Freeman") // Default name
+  const [profilePictureUri, setProfilePictureUri] = useState<string | null>(null)
   const scaleAnim = useState(new Animated.Value(1))[0]
   const pulseAnim = useState(new Animated.Value(1))[0]
   const textOpacityAnim = useState(new Animated.Value(0))[0]
@@ -68,9 +69,43 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
         setUserProfile(response.data)
         setUserName(response.data.name)
       }
+
+      // Fetch profile picture
+      await fetchProfilePicture()
     } catch (error) {
       console.error('Error fetching user profile:', error)
       // Keep default name if fetch fails
+    }
+  }
+
+  const fetchProfilePicture = async () => {
+    try {
+      const response = await axios.get(`${serverUrl}/api/profile/getUserProfilePicture`, {
+        withCredentials: true,
+        responseType: 'arraybuffer', // Important for binary data
+      })
+
+      if (response.data && response.data.byteLength > 0) {
+        // Convert byte array to base64
+        const base64String = btoa(
+          new Uint8Array(response.data).reduce((data, byte) => data + String.fromCharCode(byte), '')
+        )
+        
+        // Create data URI
+        const dataUri = `data:image/jpeg;base64,${base64String}`
+        setProfilePictureUri(dataUri)
+        console.log('Profile picture loaded successfully')
+      } else {
+        console.log('No profile picture found, using default avatar')
+      }
+    } catch (error: any) {
+      // Don't treat missing profile picture as an error, just log it
+      if (error.response?.status === 404) {
+        console.log('No profile picture available, using default avatar')
+      } else {
+        console.log('Could not load profile picture, using default avatar:', error.message)
+      }
+      // Keep default profile picture - don't set profilePictureUri
     }
   }
 
@@ -303,7 +338,11 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
           onPress={() => navigation.navigate("HealthCheck")}
         >
           <Image
-            source={require("../../assets/images/avatar-placeholder.jpg")}
+            source={
+              profilePictureUri 
+                ? { uri: profilePictureUri }
+                : require("../../assets/images/avatar-placeholder.jpg")
+            }
             style={[
               $avatar,                      // 之前定义过的样式：48×48、borderRadius、marginRight、borderWidth
               { borderColor: colors.palette.neutral300 },

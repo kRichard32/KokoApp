@@ -21,7 +21,7 @@ public class MessageController {
     private ConversationService conversationService;
 
     @Autowired
-    private FileService fileService;
+    private GoogleDriveFileService googleDriveFileService;
 
     @Autowired
     private ProfileService profileService;
@@ -35,12 +35,12 @@ public class MessageController {
     @PostMapping("/create")
     public Map<String, String> createConversation(@RequestPart MultipartFile audio, @RequestPart NewConversation newConversation) {
         HashMap<String, String> map = new HashMap<>();
-        String audioPath = fileService.do_POST(audio);
+        String audioPath = googleDriveFileService.do_POST(audio);
         Conversation conversation = new Conversation();
 
         Message message = new Message();
         message.setConversation(conversation);
-        message.setAudioPath(audioPath);
+        message.setAudioFileId(audioPath);
         Profile sender = profileService.getProfile(newConversation.getMessageTransfer().getProfileID());
         message.setSender(sender);
         message.setTimestampToCurrentTime();
@@ -62,10 +62,10 @@ public class MessageController {
     public Map<String, String> index(@RequestPart MultipartFile audio, @RequestPart MessageTransfer messageTransfer) {
         HashMap<String, String> map = new HashMap<>();
         Conversation conversation = conversationService.getConversation(messageTransfer.getConversationID());
-        String audioPath = fileService.do_POST(audio);
+        String audioPath = googleDriveFileService.do_POST(audio);
         Message message = new Message();
         message.setConversation(conversation);
-        message.setAudioPath(audioPath);
+        message.setAudioFileId(audioPath);
         Profile sender = profileService.getProfile(messageTransfer.getProfileID());
         message.setSender(sender);
         message.setTimestampToCurrentTime();
@@ -104,7 +104,7 @@ public class MessageController {
             }
         }
         if (canSee) {
-            return fileService.do_GET(message.getAudioPath());
+            return googleDriveFileService.do_GET(message.getAudioFileId());
         }
         return null;
 

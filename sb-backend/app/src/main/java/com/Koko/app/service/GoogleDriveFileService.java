@@ -1,5 +1,17 @@
 package com.Koko.app.service;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.GeneralSecurityException;
+import java.util.Collections;
+import java.util.List;
+
+import org.apache.commons.io.IOUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.ByteArrayContent;
 import com.google.api.client.http.HttpTransport;
@@ -11,18 +23,8 @@ import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-import org.apache.commons.io.IOUtils;
 
 import jakarta.annotation.PostConstruct;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.GeneralSecurityException;
-import java.util.Collections;
-import java.util.List;
 
 @Service
 public class GoogleDriveFileService {
@@ -112,28 +114,22 @@ public class GoogleDriveFileService {
     }
     
     /**
-     * Download a file from Google Drive by filepath/filename
-     * @param filepath The name or ID of the file to download
+     * Download a file from Google Drive by file ID
+     * @param fileId The Google Drive file ID
      * @return byte array of the file content
      */
-    public byte[] do_GET(String filepath) {
+    public byte[] do_GET(String fileId) {
         try {
-            // First, search for the file by name
-            String fileId = findFileIdByName(filepath);
-            
-            if (fileId == null) {
-                throw new RuntimeException("File not found: " + filepath);
-            }
-            
-            // Download the file content
+            // Download the file content directly by ID
             InputStream inputStream = driveService.files()
                     .get(fileId)
+                    .setSupportsAllDrives(true) // Support shared drives
                     .executeMediaAsInputStream();
             
             return IOUtils.toByteArray(inputStream);
             
         } catch (IOException e) {
-            throw new RuntimeException("Error downloading file from Google Drive: " + filepath, e);
+            throw new RuntimeException("Error downloading file from Google Drive with ID: " + fileId, e);
         }
     }
     

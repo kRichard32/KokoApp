@@ -18,7 +18,7 @@ public class Message {
 
     private Date timestamp;
 
-    private String audioPath;
+    private String audioFileId;
 
     private String audioTranscription;
 
@@ -51,12 +51,12 @@ public class Message {
         this.timestamp = timestamp;
     }
 
-    public String getAudioPath() {
-        return audioPath;
+    public String getAudioFileId() {
+        return audioFileId;
     }
 
-    public void setAudioPath(String audioPath) {
-        this.audioPath = audioPath;
+    public void setAudioFileId(String audioPath) {
+        this.audioFileId = audioPath;
     }
 
     public String getAudioTranscription() {
