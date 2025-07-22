@@ -1,5 +1,7 @@
 `npm install`
 
+`npx expo install expo-av`
+
 `npx expo run:android`
 
 Go to `android/app/build.gradle` inside of your RN project and add this bit of code inside of `android.defaultConfig`:
