@@ -1,5 +1,5 @@
 // app/screens/HomeScreen.tsx
-import { FC, useState } from "react"
+import { FC, useState, useEffect } from "react"
 import {
   View,
   Pressable,
@@ -13,6 +13,7 @@ import {
   Animated,
   StyleSheet,
 } from "react-native"
+import axios from "axios"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -20,6 +21,8 @@ import { TextField } from "@/components/TextField"
 import type { AppStackScreenProps } from "@/navigators/AppNavigator"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+
+const serverUrl = "http://10.0.2.2:8080"
 
 interface HomeScreenProps extends AppStackScreenProps<"Home"> {}
 
@@ -33,6 +36,8 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
   const [isRecording, setIsRecording] = useState(false)
   const [recognizedText, setRecognizedText] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
+  const [userProfile, setUserProfile] = useState<any>(null)
+  const [userName, setUserName] = useState("Agnes Freeman") // Default name
   const scaleAnim = useState(new Animated.Value(1))[0]
   const pulseAnim = useState(new Animated.Value(1))[0]
   const textOpacityAnim = useState(new Animated.Value(0))[0]
@@ -42,6 +47,32 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
   const waveAnim3 = useState(new Animated.Value(0.3))[0]
   const waveAnim4 = useState(new Animated.Value(0.8))[0]
   const waveAnim5 = useState(new Animated.Value(0.6))[0]
+
+  // Fetch user profile on component mount
+  useEffect(() => {
+    fetchUserProfile()
+  }, [])
+
+  const fetchUserProfile = async () => {
+    try {
+      const response = await axios.get(`${serverUrl}/api/profile/getUserProfile`, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      console.log('Profile data:', response.data)
+      
+      if (response.data && response.data.name) {
+        setUserProfile(response.data)
+        setUserName(response.data.name)
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error)
+      // Keep default name if fetch fails
+    }
+  }
 
   /** ====== 卡片按钮元数据 ====== */
   const ACTIONS = [
@@ -285,7 +316,7 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
           <Text size="xs" weight="light">
             Good morning
           </Text>
-          <Text weight="medium">Agnes Freeman</Text>
+          <Text weight="medium">{userName}</Text>
         </View>
       </View>
 

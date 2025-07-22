@@ -14,6 +14,8 @@ export type AuthContextType = {
   isLoading: boolean
   networkError: boolean
   loggedIn: boolean
+  profileChecked: boolean
+  hasProfile: boolean
   setAuthToken: (token?: string) => void
   setAuthEmail: (email: string) => void
   logout: () => void
@@ -33,6 +35,8 @@ export const AuthProvider: FC<PropsWithChildren<AuthProviderProps>> = ({ childre
   const [isLoading, setIsLoading] = useState(true)
   const [networkError, setNetworkError] = useState(false)
   const [loggedIn, setLoggedIn] = useState(false)
+  const [profileChecked, setProfileChecked] = useState(false)
+  const [hasProfile, setHasProfile] = useState(false)
 
   // Set up axios interceptor to include auth token in requests
   useEffect(() => {
@@ -90,6 +94,32 @@ export const AuthProvider: FC<PropsWithChildren<AuthProviderProps>> = ({ childre
     }
   }, [])
 
+  const checkUserProfile = useCallback(async () => {
+    try {
+      const response = await axios.get(`${serverUrl}/api/profile/getUserProfile`, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      console.log('Profile found:', response.data)
+      
+      if (!response.data || Object.keys(response.data).length === 0) {
+        console.log('No user profile found')
+        setHasProfile(false)
+      } else {
+        console.log('User profile exists')
+        setHasProfile(true)
+      }
+    } catch (error) {
+      console.error('Error checking user profile:', error)
+      setHasProfile(false)
+    } finally {
+      setProfileChecked(true)
+    }
+  }, [])
+
   const checkLoginState = useCallback(async (showNetworkError = true) => {
     try {
       const {
@@ -102,6 +132,9 @@ export const AuthProvider: FC<PropsWithChildren<AuthProviderProps>> = ({ childre
       if (logged_in) {
         setAuthToken("authenticated") // Set a token to indicate authentication
         setNetworkError(false) // Clear any previous network errors
+        
+        // Check user profile after successful authentication
+        await checkUserProfile()
       } else {
         setAuthToken(undefined)
         setUser(null)
@@ -124,7 +157,7 @@ export const AuthProvider: FC<PropsWithChildren<AuthProviderProps>> = ({ childre
     } finally {
       setIsLoading(false)
     }
-  }, [setAuthToken, navigateToInitialScreen])
+  }, [setAuthToken, navigateToInitialScreen, checkUserProfile])
 
   useEffect(() => {
     // Initial login check - don't show network error if server is not running
@@ -150,6 +183,8 @@ export const AuthProvider: FC<PropsWithChildren<AuthProviderProps>> = ({ childre
       setAuthEmail("")
       setUser(null)
       setLoggedIn(false)
+      setProfileChecked(false)
+      setHasProfile(false)
       // Clear axios authorization header
       delete axios.defaults.headers.common['Authorization']
     }
@@ -170,6 +205,8 @@ export const AuthProvider: FC<PropsWithChildren<AuthProviderProps>> = ({ childre
     isLoading,
     networkError,
     loggedIn,
+    profileChecked,
+    hasProfile,
     setAuthToken,
     setAuthEmail,
     logout,

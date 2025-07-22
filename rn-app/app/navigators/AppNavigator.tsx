@@ -24,6 +24,7 @@ import { MatchScreen } from "@/screens/MatchScreen"
 import { EventsScreen } from "@/screens/EventsScreen"
 import { RemindersScreen } from "@/screens/RemindersScreen"
 import { HealthCheckScreen } from "@/screens/HealthCheckScreen"
+import { ProfileCreationScreen } from "@/screens/ProfileCreationScreen"
 
 import { DemoNavigator, DemoTabParamList } from "./DemoNavigator"
 import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
@@ -57,6 +58,7 @@ export type AppStackParamList = {
   Events: undefined
   Reminders: undefined
   HealthCheck: undefined
+  ProfileCreation: undefined
   // 🔥 Your screens go here
   // IGNITE_GENERATOR_ANCHOR_APP_STACK_PARAM_LIST
 }
@@ -76,15 +78,25 @@ export type AppStackScreenProps<T extends keyof AppStackParamList> = NativeStack
 const Stack = createNativeStackNavigator<AppStackParamList>()
 
 const AppStack = () => {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, profileChecked, hasProfile } = useAuth()
 
   const {
     theme: { colors },
   } = useAppTheme()
 
-  // Show loading screen while checking authentication
-  if (isLoading) {
+  // Show loading screen while checking authentication or profile
+  if (isLoading || (isAuthenticated && !profileChecked)) {
     return null // You can replace this with a loading component
+  }
+
+  // Determine initial route based on auth and profile status
+  let initialRouteName: keyof AppStackParamList
+  if (!isAuthenticated) {
+    initialRouteName = "OAuthLogin"
+  } else if (!hasProfile) {
+    initialRouteName = "ProfileCreation"
+  } else {
+    initialRouteName = "Home"
   }
 
   return (
@@ -96,7 +108,7 @@ const AppStack = () => {
           backgroundColor: colors.background,
         },
       }}
-      initialRouteName={isAuthenticated ? "Home" : "OAuthLogin"}
+      initialRouteName={initialRouteName}
     >
       {isAuthenticated ? (
         <>
@@ -115,6 +127,7 @@ const AppStack = () => {
           <Stack.Screen name="Events" component={EventsScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Reminders" component={RemindersScreen} options={{ headerShown: false }} />
           <Stack.Screen name="HealthCheck" component={HealthCheckScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="ProfileCreation" component={ProfileCreationScreen} options={{ headerShown: false }} />
           
           <Stack.Screen name="Welcome" component={WelcomeScreen} />
 

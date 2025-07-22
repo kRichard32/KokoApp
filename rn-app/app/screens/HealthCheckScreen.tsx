@@ -10,6 +10,8 @@ import {
   Alert,
   Vibration,
 } from "react-native"
+import * as ImagePicker from 'expo-image-picker'
+import axios from "axios"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -17,6 +19,8 @@ import type { AppStackScreenProps } from "@/navigators/AppNavigator"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { useAuth } from "@/context/AuthContext"
+
+const serverUrl = "http://10.0.2.2:8080"
 
 interface HealthCheckScreenProps extends AppStackScreenProps<"HealthCheck"> {}
 
@@ -47,6 +51,7 @@ export const HealthCheckScreen: FC<HealthCheckScreenProps> = ({ navigation }) =>
   } = useAppTheme()
   const { logout } = useAuth()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
 
   // 健康问题数据 - 简化为只有英文
   const healthQuestions: HealthQuestion[] = [
@@ -208,6 +213,69 @@ export const HealthCheckScreen: FC<HealthCheckScreenProps> = ({ navigation }) =>
     }
   }
 
+  // 处理头像上传
+  const handleProfilePictureUpload = async () => {
+    try {
+      // 请求权限
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync()
+      
+      if (!permissionResult.granted) {
+        Alert.alert("Permission Required", "Please allow access to your photos to upload a profile picture.")
+        return
+      }
+
+      // 选择图片
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      })
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadProfilePicture(result.assets[0].uri)
+      }
+    } catch (error) {
+      console.error('Error selecting image:', error)
+      Alert.alert("Error", "Failed to select image. Please try again.")
+    }
+  }
+
+  // 上传头像到服务器
+  const uploadProfilePicture = async (imageUri: string) => {
+    setIsUploadingPhoto(true)
+    try {
+      const formData = new FormData()
+      
+      // 添加图片文件
+      formData.append('profilePicture', {
+        uri: imageUri,
+        type: 'image/jpeg',
+        name: 'profile.jpg',
+      } as any)
+
+      const response = await axios.post(`${serverUrl}/api/profile/addProfilePicture`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        withCredentials: true,
+      })
+
+      console.log('Profile picture uploaded successfully:', response.data)
+      Alert.alert(
+        "Success!",
+        "Profile picture uploaded successfully!",
+        [{ text: "OK" }]
+      )
+    } catch (error: any) {
+      console.error('Error uploading profile picture:', error)
+      const errorMessage = error.response?.data?.message || "Failed to upload profile picture. Please try again."
+      Alert.alert("Upload Error", errorMessage)
+    } finally {
+      setIsUploadingPhoto(false)
+    }
+  }
+
   // 渲染开始页面 - 专注语音交互
   const renderStartPage = () => (
     <View style={$startContainer}>
@@ -243,6 +311,19 @@ export const HealthCheckScreen: FC<HealthCheckScreenProps> = ({ navigation }) =>
           Voice recording will start automatically.{"\n"}
           No buttons to press - just speak your answers!
         </Text>
+
+        <Pressable
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel="Upload profile picture"
+          onPress={handleProfilePictureUpload}
+          disabled={isUploadingPhoto}
+          style={$profilePictureButton}
+        >
+          <Text style={$profilePictureButtonText}>
+            {isUploadingPhoto ? "Uploading..." : "📷 Upload Profile Picture"}
+          </Text>
+        </Pressable>
 
         <Pressable
           accessible
@@ -599,6 +680,29 @@ const $logoutButton: ViewStyle = {
 }
 
 const $logoutButtonText: TextStyle = {
+  fontSize: 18,
+  fontWeight: "bold",
+  color: "#FFFFFF",
+  textAlign: "center",
+}
+
+const $profilePictureButton: ViewStyle = {
+  backgroundColor: "#3B82F6",
+  paddingVertical: 16,
+  paddingHorizontal: 32,
+  borderRadius: 12,
+  marginTop: 16,
+  shadowColor: "#000",
+  shadowOffset: {
+    width: 0,
+    height: 2,
+  },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  elevation: 4,
+}
+
+const $profilePictureButtonText: TextStyle = {
   fontSize: 18,
   fontWeight: "bold",
   color: "#FFFFFF",

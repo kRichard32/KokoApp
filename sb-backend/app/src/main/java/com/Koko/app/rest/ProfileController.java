@@ -3,12 +3,10 @@ package com.Koko.app.rest;
 
 import com.Koko.app.domain.Profile;
 import com.Koko.app.dataTransfer.ProfileTransfer;
-import com.Koko.app.service.FileService;
-import com.Koko.app.service.JwtService;
-import com.Koko.app.service.ProfileService;
-import com.Koko.app.service.TraitService;
+import com.Koko.app.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,8 +21,10 @@ public class ProfileController {
     @Autowired
     private ProfileService profileService;
 
+//    @Autowired
+//    private FileService fileService;
     @Autowired
-    private FileService fileService;
+    private GoogleDriveFileService googleDriveFileService;
 
     @Autowired
     private JwtService jwtService;
@@ -32,10 +32,14 @@ public class ProfileController {
     @ResponseStatus(value = HttpStatus.OK)
 
     @PostMapping("/create")
-    public Map<String, String> createProfile(@RequestBody ProfileTransfer profileData) {
+    public Map<String, String> createProfile(@CookieValue(value = "token", required = false) String token,
+                                             @RequestBody ProfileTransfer profileData) {
+        Map<String, Object> userInfo = jwtService.decodeIdToken(token);
         List<String> traits = profileData.getTraits();
         Profile profile = new Profile();
+        profile.setEmail(userInfo.get("email").toString());
         profile.setTraits(traitService.getTraits(traits));
+        profile.setName(profileData.getName());
         profileService.save(profile);
 
         HashMap<String, String> map = new HashMap<>();
@@ -56,9 +60,10 @@ public class ProfileController {
         return map;
     }
     @PostMapping("/addProfilePicture")
-    public Map<String, String> addTrait(@RequestPart MultipartFile profilePicture, @RequestPart ProfileTransfer profileData) {
-        Profile profile = profileService.getProfile(profileData.getId());
-        String profilePicturePath = fileService.do_POST(profilePicture);
+    public Map<String, String> addTrait(@CookieValue(value = "token", required = false) String token, @RequestPart MultipartFile profilePicture) {
+        Map<String, Object> userInfo = jwtService.decodeIdToken(token);
+        Profile profile = profileService.getProfileByEmail((String) userInfo.get("email"));
+        String profilePicturePath = googleDriveFileService.do_POST(profilePicture);
         profile.setProfilePicture(profilePicturePath);
         HashMap<String, String> map = new HashMap<>();
         profileService.save(profile);

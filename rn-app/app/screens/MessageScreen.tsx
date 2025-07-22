@@ -75,7 +75,7 @@ export const MessageScreen: FC<MessageScreenProps> = ({ navigation }) => {
   // 获取用户个人资料
   const fetchProfile = async () => {
     try {
-      const response = await axios.get(`${serverUrl}/api/profile/getProfile?id=1`, {
+      const response = await axios.get(`${serverUrl}/api/profile/getUserProfile`, {
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
