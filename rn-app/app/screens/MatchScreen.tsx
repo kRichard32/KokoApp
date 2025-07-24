@@ -36,11 +36,14 @@ interface UserProfile {
 const { width: screenWidth } = Dimensions.get('window')
 const PHOTO_WIDTH = screenWidth - 40
 
-export const MatchScreen: FC<MatchScreenProps> = ({ navigation }) => {
+export const MatchScreen: FC<MatchScreenProps> = ({ navigation, route }) => {
   const {
     themed,
     theme: { colors, spacing },
   } = useAppTheme()
+
+  // Get parameters from route (if coming from PeopleScreen)
+  const { personId, personName } = route.params || {}
 
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
   const photoScrollRef = useRef<FlatList>(null)
@@ -197,8 +200,8 @@ export const MatchScreen: FC<MatchScreenProps> = ({ navigation }) => {
   // 发送消息
   const handleMessage = () => {
     navigation.navigate("ChatDetail", {
-      contactId: currentUser.id,
-      contactName: currentUser.name
+      conversationId: currentUser.id,
+      conversationName: currentUser.name
     })
   }
 

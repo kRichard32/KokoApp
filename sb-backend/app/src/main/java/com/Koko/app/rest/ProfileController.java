@@ -1,15 +1,29 @@
 package com.Koko.app.rest;
 
 
-import com.Koko.app.domain.Profile;
-import com.Koko.app.dataTransfer.ProfileTransfer;
-import com.Koko.app.service.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.*;
+import com.Koko.app.dataTransfer.ProfileTransfer;
+import com.Koko.app.domain.Profile;
+import com.Koko.app.service.GoogleDriveFileService;
+import com.Koko.app.service.JwtService;
+import com.Koko.app.service.ProfileService;
+import com.Koko.app.service.TraitService;
 
 @RestController
 @RequestMapping("/api/profile")
@@ -75,12 +89,30 @@ public class ProfileController {
             @RequestParam("id") int id) {
         return profileService.getProfile(id);
     }
-    @GetMapping("/getUserProfilePicture")
-    public byte[] getProfilePicture(
+    @GetMapping("/getMatchUsers")
+    public List<Profile> getMatchUsers(
             @CookieValue(value = "token", required = false) String token) {
         Map<String, Object> userInfo = jwtService.decodeIdToken(token);
         Profile profile = profileService.getProfileByEmail((String) userInfo.get("email"));
+        return profileService.getProfiles().stream()
+            .filter(p -> !p.getId().equals(profile.getId()))
+            .toList();
+    }
+    @GetMapping("/getProfilePicture")
+    public byte[] getProfilePicture(
+            @RequestParam("id") int id) {
 
+        Profile profile = profileService.getProfile(id);
+        return googleDriveFileService.do_GET(profile.getProfilePictureId());
+    }
+    @GetMapping("/getUserProfilePicture")
+    public byte[] getUserProfilePicture(
+            @CookieValue(value = "token", required = false) String token) {
+        Map<String, Object> userInfo = jwtService.decodeIdToken(token);
+        Profile profile = profileService.getProfileByEmail((String) userInfo.get("email"));
+        if (profile.getProfilePictureId() == null) {
+            return null;
+        }
         return googleDriveFileService.do_GET(profile.getProfilePictureId());
     }
     @GetMapping("/getUserProfile")
@@ -89,4 +121,5 @@ public class ProfileController {
         Map<String, Object> userInfo = jwtService.decodeIdToken(token);
         return profileService.getProfileByEmail((String) userInfo.get("email"));
     }
+
 }

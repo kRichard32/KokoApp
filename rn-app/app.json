@@ -22,12 +22,16 @@
       "backgroundImage": "./assets/images/app-icon-android-adaptive-background.png"
     },
     "allowBackup": false,
-    "edgeToEdgeEnabled": true
+    "edgeToEdgeEnabled": true,
+    "permissions": ["RECORD_AUDIO", "MODIFY_AUDIO_SETTINGS"]
   },
   "ios": {
     "icon": "./assets/images/app-icon-ios.png",
     "supportsTablet": true,
-    "bundleIdentifier": "com.kindialapp"
+    "bundleIdentifier": "com.kindialapp",
+    "infoPlist": {
+      "NSMicrophoneUsageDescription": "This app needs access to the microphone to record voice messages for your conversations."
+    }
   },
   "web": {
     "favicon": "./assets/images/app-icon-web-favicon.png",

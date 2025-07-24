@@ -8,7 +8,7 @@ public class MessageTransfer {
 
     private String audioTranscription;
 
-    private int conversationID;
+    private int conversationId;
 
     public String getAudioPath() {
         return audioPath;
@@ -34,11 +34,11 @@ public class MessageTransfer {
         this.profileID = profileID;
     }
 
-    public int getConversationID() {
-        return conversationID;
+    public int getConversationId() {
+        return conversationId;
     }
 
-    public void setConversationID(int conversationID) {
-        this.conversationID = conversationID;
+    public void setConversationId(int conversationId) {
+        this.conversationId = conversationId;
     }
 }

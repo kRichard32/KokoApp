@@ -26,10 +26,13 @@ public class ConversationService {
         }
         return conversation;
     }
-    public List<Conversation> getConversationsByID(long id) {
+    public List<Conversation> getConversationsByUserID(long id) {
         return conversationRepository.findByUsersId(id);
     }
     public Conversation getConversationByMessageID(int id) {
         return conversationRepository.findByMessagesId(id);
+    }
+    public Conversation getConversationByConversationID(long userId, int conversationId) {
+        return conversationRepository.findByUsersIdAndId(userId,conversationId);
     }
 }

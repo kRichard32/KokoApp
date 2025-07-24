@@ -4,19 +4,20 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 import java.sql.Date;
+import java.sql.Timestamp;
 
 @Entity
 public class Message {
     @Column(unique=true)
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @SequenceGenerator(name = "message_seq", sequenceName = "message_seq", allocationSize = 1)
     private int id;
 
-    @JsonBackReference
     @ManyToOne
     private Profile sender;
 
-    private Date timestamp;
+    private Timestamp timestamp;
 
     private String audioFileId;
 
@@ -43,11 +44,11 @@ public class Message {
         this.sender = sender;
     }
 
-    public Date getTimestamp() {
+    public Timestamp getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(Timestamp timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -75,6 +76,6 @@ public class Message {
         this.conversation = conversation;
     }
     public void setTimestampToCurrentTime() {
-        this.timestamp = new Date(System.currentTimeMillis());
+        this.timestamp = new Timestamp(System.currentTimeMillis());
     }
 }

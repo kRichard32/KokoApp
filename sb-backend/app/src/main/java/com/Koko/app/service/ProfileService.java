@@ -38,5 +38,8 @@ public class ProfileService {
     public Profile getProfileByEmail(String email) {
         return profileRepository.findByEmail(email).orElse(null);
     }
+    public List<Profile> getProfiles() {
+        return profileRepository.findAll();
+    }
 
 }

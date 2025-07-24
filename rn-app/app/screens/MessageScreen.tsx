@@ -25,22 +25,21 @@ import type { ThemedStyle } from "@/theme/types"
 const serverUrl = "http://10.0.2.2:8080"
 
 // 数据类型定义
-interface Doctor {
+interface People {
   id: string
   name: string
   specialty: string
-  avatar: string
+  avatar: any // 改为 any 类型以支持 require() 导入
   isOnline: boolean
   lastMessage?: string
   lastMessageTime?: string
   unreadCount?: number
 }
 
-interface RecentContact {
+interface Conversation {
   id: string
-  name: string
-  specialty: string
-  avatar: string
+  title: string
+  users: string[]
   lastMessage: string
   lastMessageTime: string
   unreadCount?: number
@@ -54,8 +53,8 @@ export const MessageScreen: FC<MessageScreenProps> = ({ navigation }) => {
     theme: { colors, spacing },
   } = useAppTheme()
 
-  const [recentDoctors, setRecentDoctors] = useState<Doctor[]>([])
-  const [recentContacts, setRecentContacts] = useState<RecentContact[]>([])
+  const [recentPeople, setRecentPeople] = useState<People[]>([])
+  const [conversations, setConversations] = useState<Conversation[]>([])
   
   // 滚动动画值
   const scrollY = useRef(new Animated.Value(0)).current
@@ -67,37 +66,92 @@ export const MessageScreen: FC<MessageScreenProps> = ({ navigation }) => {
 
   // 模拟数据加载 - 这里将来替换为API调用
   useEffect(() => {
-    loadMockData()
+    // loadMockData() // Removed mock data loading
     setupScrollAnimations()
-    fetchProfile()
+    fetchConversations()
   }, [])
 
-  // 获取用户个人资料
-  const fetchProfile = async () => {
-    try {
-      const response = await axios.get(`${serverUrl}/api/profile/getUserProfile`, {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-      console.log('Profile data:', response.data)
-    } catch (error) {
-      console.error('Failed to fetch profile:', error)
-      if (axios.isAxiosError(error)) {
-        if (error.response) {
-          console.error('Response status:', error.response.status)
-          console.error('Response data:', error.response.data)
-        } else if (error.request) {
-          console.error('No response received:', error.request)
-        } else {
-          console.error('Error setting up request:', error.message)
+  // 获取用户对话列表
+  const fetchConversations = async () => {
+  try {
+    const response = await axios.get(`${serverUrl}/api/messages/getUserConversations`, {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    
+    console.log('Conversations data:', response.data)
+    
+    if (response.data && Array.isArray(response.data)) {
+      // 将API响应转换为我们的对话格式
+      const formattedConversations: Conversation[] = response.data.map((conv: any) => {
+        // Helper function to safely get user name
+        const getUserName = (user: any): string => {
+          if (typeof user === 'string') return user;
+          if (user && typeof user.name === 'string') return user.name;
+          return 'Unknown User';
         }
+        
+        // Generate title safely
+        let title = 'Unknown Conversation';
+        if (conv.users && Array.isArray(conv.users) && conv.users.length > 0) {
+          if (conv.users.length === 1) {
+            title = getUserName(conv.users[0]);
+          } else {
+            title = conv.users.map(getUserName).join(', ');
+          }
+        }
+        
+        return {
+          id: conv.id,
+          title: title || 'Unknown Conversation',
+          users: conv.users || [],
+          lastMessage: conv.lastMessage || 'No messages yet',
+          lastMessageTime: conv.timestamp || 'Just now',
+          unreadCount: conv.unreadCount || 0,
+        };
+      })
+      
+      setConversations(formattedConversations)
+
+      // 使用前3个对话创建"最近"人员列表
+      const recentFromConversations: People[] = formattedConversations.slice(0, 3).map((conv, index) => ({
+        id: conv.id,
+        name: conv.title,
+        specialty: `${conv.users.length} participants`,
+        avatar: require("../../assets/images/avatar-placeholder.jpg"), // 使用默认头像
+        isOnline: true, // 假设都在线
+      }))
+      
+      setRecentPeople(recentFromConversations)
+    } else {
+      // 如果没有对话，设置空数组
+      console.log('No conversations found')
+      setConversations([])
+      setRecentPeople([])
+    }
+  } catch (error) {
+    console.error('Failed to fetch conversations:', error)
+    
+    // Set empty state when API fails
+    setConversations([])
+    setRecentPeople([])
+    
+    if (axios.isAxiosError(error)) {
+      if (error.response) {
+        console.error('Response status:', error.response.status)
+        console.error('Response data:', error.response.data)
+      } else if (error.request) {
+        console.error('No response received:', error.request)
       } else {
-        console.error('Unexpected error:', error)
+        console.error('Error setting up request:', error.message)
       }
+    } else {
+      console.error('Unexpected error:', error)
     }
   }
+}
 
   // 设置滚动动画
   const setupScrollAnimations = () => {
@@ -185,188 +239,7 @@ export const MessageScreen: FC<MessageScreenProps> = ({ navigation }) => {
   )
 
   // 预留的API接口函数
-  const loadMockData = async () => {
-    // TODO: 替换为真实的API调用
-    // const doctorsResponse = await api.getRecentDoctors()
-    // const contactsResponse = await api.getRecentContacts()
-    
-    // 模拟数据
-    const mockDoctors: Doctor[] = [
-      {
-        id: "1",
-        name: "Dr. Sam",
-        specialty: "Cardiologist",
-        avatar: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=100&h=100&fit=crop&crop=face",
-        isOnline: true,
-      },
-      {
-        id: "2", 
-        name: "Dr. John",
-        specialty: "Neurologist",
-        avatar: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=100&h=100&fit=crop&crop=face",
-        isOnline: true,
-      },
-      {
-        id: "3",
-        name: "Dr. Lala",
-        specialty: "Dermatologist", 
-        avatar: "https://images.unsplash.com/photo-1594824226625-48f5ad6be2cf?w=100&h=100&fit=crop&crop=face",
-        isOnline: false,
-      },
-      {
-        id: "4",
-        name: "Dr. Emma",
-        specialty: "Psychiatrist",
-        avatar: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=100&h=100&fit=crop&crop=face",
-        isOnline: true,
-      },
-      {
-        id: "5",
-        name: "Dr. Mike",
-        specialty: "Orthopedic",
-        avatar: "https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=100&h=100&fit=crop&crop=face",
-        isOnline: false,
-      },
-      {
-        id: "6",
-        name: "Dr. Lisa",
-        specialty: "Pediatrician",
-        avatar: "https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=100&h=100&fit=crop&crop=face",
-        isOnline: true,
-      },
-    ]
-
-    const mockContacts: RecentContact[] = [
-      {
-        id: "1",
-        name: "Rosalie Adkins",
-        specialty: "Aromatherapy While ...",
-        avatar: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=100&h=100&fit=crop&crop=face",
-        lastMessage: "Hello, how are you feeling today?",
-        lastMessageTime: "13:2",
-        unreadCount: 2,
-      },
-      {
-        id: "2",
-        name: "Marc Lindsey",
-        specialty: "Learn About Swimmers ...",
-        avatar: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=100&h=100&fit=crop&crop=face",
-        lastMessage: "Your test results are ready",
-        lastMessageTime: "13:2",
-      },
-      {
-        id: "3",
-        name: "Mary Floyd",
-        specialty: "Colon Flush For An ...",
-        avatar: "https://images.unsplash.com/photo-1594824226625-48f5ad6be2cf?w=100&h=100&fit=crop&crop=face",
-        lastMessage: "Please remember to take your medication",
-        lastMessageTime: "13:2",
-      },
-      {
-        id: "4",
-        name: "Cecilia Chavez",
-        specialty: "Gastroenteritis Is A ...",
-        avatar: "https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=100&h=100&fit=crop&crop=face",
-        lastMessage: "How was your appointment yesterday?",
-        lastMessageTime: "13:2",
-      },
-      {
-        id: "5",
-        name: "Lelia Parks",
-        specialty: "How To Combat A Bout ...",
-        avatar: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=100&h=100&fit=crop&crop=face",
-        lastMessage: "Schedule your next checkup",
-        lastMessageTime: "13:2",
-      },
-      {
-        id: "6",
-        name: "Brent Rivera",
-        specialty: "Therapy And Treatment ...",
-        avatar: "https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=100&h=100&fit=crop&crop=face",
-        lastMessage: "Great progress in your recovery!",
-        lastMessageTime: "13:2",
-        unreadCount: 1,
-      },
-      {
-        id: "7",
-        name: "Sarah Johnson",
-        specialty: "Physical Therapy Sessions",
-        avatar: "https://images.unsplash.com/photo-1594824226625-48f5ad6be2cf?w=100&h=100&fit=crop&crop=face",
-        lastMessage: "Don't forget our session tomorrow",
-        lastMessageTime: "12:45",
-        unreadCount: 3,
-      },
-      {
-        id: "8",
-        name: "Dr. Chen Wei",
-        specialty: "Traditional Chinese Medicine",
-        avatar: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=100&h=100&fit=crop&crop=face",
-        lastMessage: "Your herbal prescription is ready",
-        lastMessageTime: "11:30",
-      },
-      {
-        id: "9",
-        name: "Amanda Ross",
-        specialty: "Nutrition Counseling",
-        avatar: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=100&h=100&fit=crop&crop=face",
-        lastMessage: "Here's your meal plan for next week",
-        lastMessageTime: "10:15",
-      },
-      {
-        id: "10",
-        name: "Dr. Robert Kim",
-        specialty: "Mental Health Support",
-        avatar: "https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=100&h=100&fit=crop&crop=face",
-        lastMessage: "How have you been feeling lately?",
-        lastMessageTime: "09:20",
-        unreadCount: 1,
-      },
-      {
-        id: "11",
-        name: "Lisa Thompson",
-        specialty: "Diabetes Management",
-        avatar: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=100&h=100&fit=crop&crop=face",
-        lastMessage: "Your blood sugar levels look good",
-        lastMessageTime: "08:45",
-      },
-      {
-        id: "12",
-        name: "Dr. Martinez",
-        specialty: "Pain Management Clinic",
-        avatar: "https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=100&h=100&fit=crop&crop=face",
-        lastMessage: "Let's adjust your pain management plan",
-        lastMessageTime: "Yesterday",
-      },
-      {
-        id: "13",
-        name: "Emily Davis",
-        specialty: "Sleep Disorder Treatment",
-        avatar: "https://images.unsplash.com/photo-1594824226625-48f5ad6be2cf?w=100&h=100&fit=crop&crop=face",
-        lastMessage: "How was your sleep quality this week?",
-        lastMessageTime: "Yesterday",
-        unreadCount: 2,
-      },
-      {
-        id: "14",
-        name: "Dr. Anderson",
-        specialty: "Chronic Disease Management",
-        avatar: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=100&h=100&fit=crop&crop=face",
-        lastMessage: "Your lab results are in",
-        lastMessageTime: "2 days ago",
-      },
-      {
-        id: "15",
-        name: "Jessica Wu",
-        specialty: "Elderly Care Coordination",
-        avatar: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=100&h=100&fit=crop&crop=face",
-        lastMessage: "I've scheduled your home visit",
-        lastMessageTime: "3 days ago",
-      },
-    ]
-
-    setRecentDoctors(mockDoctors)
-    setRecentContacts(mockContacts)
-  }
+  // loadMockData function removed - using only real API data now
 
   // API接口函数 - 预留给后端集成
   const searchDoctors = async (query: string) => {
@@ -375,62 +248,65 @@ export const MessageScreen: FC<MessageScreenProps> = ({ navigation }) => {
     // return results
   }
 
-  const openChat = (contactId: string, contactName: string) => {
+  const openChat = (conversationId: string, conversationName: string) => {
     // 导航到聊天详情页面
-    navigation.navigate("ChatDetail", { contactId, contactName })
-    console.log(`Opening chat with ${contactName}`)
+    navigation.navigate("ChatDetail", { conversationId, conversationName })
+    console.log(`Opening chat with ${conversationName}`)
   }
 
-  const renderDoctorItem: ListRenderItem<Doctor> = ({ item }) => (
+  const renderPersonItem: ListRenderItem<People> = ({ item }) => (
     <Pressable
-      style={$doctorItem}
+      style={$personItem}
       onPress={() => openChat(item.id, item.name)}
       accessible
       accessibilityRole="button"
       accessibilityLabel={`Chat with ${item.name}, ${item.specialty}`}
     >
-      <View style={$doctorImageContainer}>
+      <View style={$personImageContainer}>
         <Image
-          source={{ uri: item.avatar }}
-          style={$doctorImage}
+          source={
+            item.avatar && typeof item.avatar === 'string'
+              ? { uri: item.avatar }
+              : require("../../assets/images/avatar-placeholder.jpg")
+          }
+          style={$personImage}
           defaultSource={require("../../assets/images/avatar-placeholder.jpg")}
         />
         {item.isOnline && <View style={$onlineIndicator} />}
       </View>
-      <View style={$doctorInfo}>
-        <Text style={$doctorName} numberOfLines={1}>
+      <View style={$personInfo}>
+        <Text style={$personName} numberOfLines={1}>
           {item.name}
         </Text>
       </View>
     </Pressable>
   )
 
-  const renderContactItem: ListRenderItem<RecentContact> = ({ item }) => (
+  const renderConversationItem: ListRenderItem<Conversation> = ({ item }) => (
     <Pressable
       style={$contactItem}
-      onPress={() => openChat(item.id, item.name)}
+      onPress={() => openChat(item.id, item.title)}
       accessible
       accessibilityRole="button"
-      accessibilityLabel={`Open conversation with ${item.name}`}
+      accessibilityLabel={`Open conversation with ${item.title}`}
     >
       <View style={$contactImageContainer}>
         <Image
-          source={{ uri: item.avatar }}
+          source={require("../../assets/images/avatar-placeholder.jpg")}
           style={$contactImage}
-          defaultSource={require("../../assets/images/avatar-placeholder.jpg")}
         />
       </View>
       <View style={$contactInfo}>
         <View style={$contactHeader}>
-          <Text style={$contactName} numberOfLines={1}>
-            {item.name}
+          <Text style={$conversationName} numberOfLines={1}>
+            {item.title}
           </Text>
           <Text style={$messageTime}>
             {item.lastMessageTime}
           </Text>
         </View>
         <Text style={$contactSpecialty} numberOfLines={1}>
-          {item.specialty}
+          {item.users.length} participants
         </Text>
         <Text style={$lastMessage} numberOfLines={1}>
           {item.lastMessage}
@@ -497,70 +373,92 @@ export const MessageScreen: FC<MessageScreenProps> = ({ navigation }) => {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* Recent Doctors Section */}
-        <View style={$section}>
-          <View style={$sectionHeader}>
-            <Text preset="subheading" style={$sectionTitle}>
-              Recent
-            </Text>
-            <Pressable accessible accessibilityRole="button" accessibilityLabel="See more recent doctors">
-              <Text style={$seeMore}>See more</Text>
-            </Pressable>
+        {/* Recent People Section - Only show if there are recent people */}
+        {recentPeople.length > 0 && (
+          <View style={$section}>
+            <View style={$sectionHeader}>
+              <Text preset="subheading" style={$sectionTitle}>
+                Recent
+              </Text>
+              <Pressable accessible accessibilityRole="button" accessibilityLabel="See more recent people">
+                <Text style={$seeMore}>See more</Text>
+              </Pressable>
+            </View>
+            <FlatList
+              data={recentPeople}
+              renderItem={renderPersonItem}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={$peopleContainer}
+            />
           </View>
-          <FlatList
-            data={recentDoctors}
-            renderItem={renderDoctorItem}
-            keyExtractor={(item) => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={$doctorsContainer}
-          />
-        </View>
+        )}
 
-        {/* Contacts List */}
+        {/* Conversations List */}
         <View style={$section}>
           <Text preset="subheading" style={$sectionTitle}>
-            List
+            Conversations
           </Text>
-          {recentContacts.map((item) => (
-            <Pressable
-              key={item.id}
-              style={$contactItem}
-              onPress={() => openChat(item.id, item.name)}
-              accessible
-              accessibilityRole="button"
-              accessibilityLabel={`Open conversation with ${item.name}`}
-            >
-              <View style={$contactImageContainer}>
-                <Image
-                  source={{ uri: item.avatar }}
-                  style={$contactImage}
-                  defaultSource={require("../../assets/images/avatar-placeholder.jpg")}
-                />
-              </View>
-              <View style={$contactInfo}>
-                <View style={$contactHeader}>
-                  <Text style={$contactName} numberOfLines={1}>
-                    {item.name}
+          {conversations.length === 0 ? (
+            // Empty state when no conversations
+            <View style={$emptyStateContainer}>
+              <Text style={$emptyStateIcon}>💬</Text>
+              <Text style={$emptyStateTitle}>No Conversations Yet</Text>
+              <Text style={$emptyStateDescription}>
+                You haven't started any conversations. Find people to chat with!
+              </Text>
+              <Pressable
+                style={$findPeopleButton}
+                onPress={() => navigation.navigate("People")}
+                accessible
+                accessibilityRole="button"
+                accessibilityLabel="Go to match screen to find people"
+              >
+                <Text style={$findPeopleButtonText}>Find People to Chat</Text>
+              </Pressable>
+            </View>
+          ) : (
+            // Show conversations when they exist
+            conversations.map((item) => (
+              <Pressable
+                key={item.id}
+                style={$contactItem}
+                onPress={() => openChat(item.id, item.title)}
+                accessible
+                accessibilityRole="button"
+                accessibilityLabel={`Open conversation with ${item.title}`}
+              >
+                <View style={$contactImageContainer}>
+                  <Image
+                    source={require("../../assets/images/avatar-placeholder.jpg")}
+                    style={$contactImage}
+                  />
+                </View>
+                <View style={$contactInfo}>
+                  <View style={$contactHeader}>
+                    <Text style={$conversationName} numberOfLines={1}>
+                      {item.title}
+                    </Text>
+                    <Text style={$messageTime}>
+                      {item.lastMessageTime}
+                    </Text>
+                  </View>
+                  <Text style={$contactSpecialty} numberOfLines={1}>
+                    {item.users.length} participants
                   </Text>
-                  <Text style={$messageTime}>
-                    {item.lastMessageTime}
+                  <Text style={$lastMessage} numberOfLines={1}>
+                    {item.lastMessage}
                   </Text>
                 </View>
-                <Text style={$contactSpecialty} numberOfLines={1}>
-                  {item.specialty}
-                </Text>
-                <Text style={$lastMessage} numberOfLines={1}>
-                  {item.lastMessage}
-                </Text>
-              </View>
-              {item.unreadCount && item.unreadCount > 0 && (
-                <View style={$unreadBadge}>
-                  <Text style={$unreadText}>{item.unreadCount}</Text>
-                </View>
-              )}
-            </Pressable>
-          ))}
+                {typeof item.unreadCount === "number" && item.unreadCount > 0 && (
+                  <View style={$unreadBadge}>
+                    <Text style={$unreadText}>{item.unreadCount}</Text>
+                  </View>
+                )}
+              </Pressable>
+            ))
+          )}
         </View>
       </ScrollView>
     </Screen>
@@ -662,22 +560,22 @@ const $seeMore: TextStyle = {
   fontWeight: "500",
 }
 
-const $doctorsContainer: ViewStyle = {
+const $peopleContainer: ViewStyle = {
   paddingRight: 16,
 }
 
-const $doctorItem: ViewStyle = {
+const $personItem: ViewStyle = {
   alignItems: "center",
   marginRight: 24, // 增加间距
   width: 100, // 增加宽度适应更大的头像
 }
 
-const $doctorImageContainer: ViewStyle = {
+const $personImageContainer: ViewStyle = {
   position: "relative",
   marginBottom: 8,
 }
 
-const $doctorImage: ImageStyle = {
+const $personImage: ImageStyle = {
   width: 80, // 增大头像尺寸
   height: 80,
   borderRadius: 40,
@@ -696,12 +594,12 @@ const $onlineIndicator: ViewStyle = {
   borderColor: "#FFFFFF",
 }
 
-const $doctorInfo: ViewStyle = {
+const $personInfo: ViewStyle = {
   alignItems: "center",
 }
 
-const $doctorName: TextStyle = {
-  fontSize: 16, // 增大医生姓名字体
+const $personName: TextStyle = {
+  fontSize: 16, // 增大人员姓名字体
   fontWeight: "600",
   color: "#000",
   textAlign: "center",
@@ -741,7 +639,7 @@ const $contactHeader: ViewStyle = {
   marginBottom: 4,
 }
 
-const $contactName: TextStyle = {
+const $conversationName: TextStyle = {
   fontSize: 16,
   fontWeight: "600",
   color: "#000",
@@ -780,4 +678,51 @@ const $unreadText: TextStyle = {
   fontSize: 12,
   fontWeight: "600",
   color: "#FFFFFF",
+}
+
+// Empty state styles
+const $emptyStateContainer: ViewStyle = {
+  alignItems: "center",
+  paddingVertical: 60,
+  paddingHorizontal: 20,
+}
+
+const $emptyStateIcon: TextStyle = {
+  fontSize: 64,
+  marginBottom: 20,
+}
+
+const $emptyStateTitle: TextStyle = {
+  fontSize: 24,
+  fontWeight: "700",
+  color: "#000",
+  marginBottom: 12,
+  textAlign: "center",
+}
+
+const $emptyStateDescription: TextStyle = {
+  fontSize: 16,
+  color: "#666",
+  textAlign: "center",
+  lineHeight: 22,
+  marginBottom: 32,
+}
+
+const $findPeopleButton: ViewStyle = {
+  backgroundColor: "#007AFF",
+  paddingHorizontal: 32,
+  paddingVertical: 16,
+  borderRadius: 25,
+  elevation: 2,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.2,
+  shadowRadius: 4,
+}
+
+const $findPeopleButtonText: TextStyle = {
+  fontSize: 16,
+  fontWeight: "600",
+  color: "#FFFFFF",
+  textAlign: "center",
 }

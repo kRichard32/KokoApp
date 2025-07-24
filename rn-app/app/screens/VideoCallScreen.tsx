@@ -28,7 +28,7 @@ export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route })
   } = useAppTheme()
 
   // 从路由参数获取联系人信息
-  const { contactId, contactName } = route.params
+  const { conversationId, conversationName } = route.params
 
   const [callDuration, setCallDuration] = useState(0)
   const [isMuted, setIsMuted] = useState(false)
@@ -106,7 +106,7 @@ export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route })
         
         {/* 通话信息覆盖层 */}
         <View style={$callInfoOverlay}>
-          <Text style={$contactNameLarge}>{contactName}</Text>
+          <Text style={$contactNameLarge}>{conversationName}</Text>
           <Text style={$callDurationText}>{formatCallDuration(callDuration)}</Text>
           <Text style={$callStatusText}>Video Call</Text>
         </View>

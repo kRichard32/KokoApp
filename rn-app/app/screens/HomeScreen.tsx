@@ -112,7 +112,7 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
   /** ====== 卡片按钮元数据 ====== */
   const ACTIONS = [
     { key: "Chat", emoji: "💬", tint: colors.palette.primary100, route: "Message" },
-    { key: "Match", emoji: "🤝", tint: colors.palette.secondary100, route: "Match" },
+    { key: "Match", emoji: "🤝", tint: colors.palette.secondary100, route: "People" },
     { key: "Events", emoji: "🎉", tint: colors.palette.secondary100, route: "Events" },
     { key: "Reminders", emoji: "⏰", tint: colors.palette.primary100, route: "Reminders" },
   ] as const
@@ -214,8 +214,8 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
         setRecognizedText("")
         // 跳转到Mary Floyd的聊天界面
         navigation.navigate("ChatDetail", {
-          contactId: "mary-floyd",
-          contactName: "Mary Floyd"
+          conversationId: "mary-floyd",
+          conversationName: "Mary Floyd"
         })
       })
     }

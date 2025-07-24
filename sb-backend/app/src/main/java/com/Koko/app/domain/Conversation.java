@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
 import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Set;
 
@@ -12,18 +13,20 @@ public class Conversation {
     @Column(unique=true)
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @SequenceGenerator(name = "conversation_seq", sequenceName = "conversation_seq", allocationSize = 1)
     private int id;
 
     private int messageCount;
 
-    private Date timestamp;
+    private Timestamp timestamp;
 
     @JsonManagedReference
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private List<Profile> users;
 
     @JsonManagedReference
-    @OneToMany(cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "conversation", orphanRemoval = true)
+    @OrderBy("timestamp ASC")
     private List<Message> messages;
 
     public int getId() {
@@ -65,14 +68,14 @@ public class Conversation {
         this.messages.add(message);
     }
 
-    public Date getTimestamp() {
+    public Timestamp getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(Timestamp timestamp) {
         this.timestamp = timestamp;
     }
     public void setTimestampToCurrentTime() {
-        this.timestamp = new Date(System.currentTimeMillis());
+        this.timestamp = new Timestamp(System.currentTimeMillis());
     }
 }

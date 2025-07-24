@@ -20,6 +20,7 @@ import { HomeScreen } from "@/screens/HomeScreen"
 import { MessageScreen } from "@/screens/MessageScreen"
 import { ChatDetailScreen } from "@/screens/ChatDetailScreen"
 import { VideoCallScreen } from "@/screens/VideoCallScreen"
+import { PeopleScreen } from "@/screens/PeopleScreen"
 import { MatchScreen } from "@/screens/MatchScreen"
 import { EventsScreen } from "@/screens/EventsScreen"
 import { RemindersScreen } from "@/screens/RemindersScreen"
@@ -47,14 +48,18 @@ export type AppStackParamList = {
   Home: undefined
   Message: undefined
   ChatDetail: {
-    contactId: string
-    contactName: string
+    conversationId: string
+    conversationName: string
   }
   VideoCall: {
-    contactId: string
-    contactName: string
+    conversationId: string
+    conversationName: string
   }
-  Match: undefined
+  People: undefined
+  Match: {
+    personId?: string
+    personName?: string
+  }
   Events: undefined
   Reminders: undefined
   HealthCheck: undefined
@@ -123,6 +128,7 @@ const AppStack = () => {
               orientation: "portrait",
             }}
           />
+          <Stack.Screen name="People" component={PeopleScreen} />
           <Stack.Screen name="Match" component={MatchScreen} />
           <Stack.Screen name="Events" component={EventsScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Reminders" component={RemindersScreen} options={{ headerShown: false }} />

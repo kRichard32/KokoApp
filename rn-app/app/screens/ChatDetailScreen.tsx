@@ -13,18 +13,24 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native"
+import axios from "axios"
+import { Audio } from 'expo-av'
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
+import VoiceRecorder, { VoiceRecorderRef } from "@/components/VoiceRecorder"
 import type { AppStackScreenProps } from "@/navigators/AppNavigator"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+
+const serverUrl = "http://10.0.2.2:8080"
 
 // 消息数据类型
 interface ChatMessage {
   id: string
   text?: string
   audioUrl?: string
+  audioFileId?: string // 新增：音频文件ID
   audioDuration?: number // 语音时长（秒）
   timestamp: Date
   isFromUser: boolean
@@ -50,96 +56,237 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
   } = useAppTheme()
 
   // 从路由参数获取联系人信息
-  const { contactId, contactName } = route.params
+  const { conversationId, conversationName } = route.params
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputText, setInputText] = useState("")
   const [contact, setContact] = useState<Contact | null>(null)
   const [isRecording, setIsRecording] = useState(false)
   const [recordingDuration, setRecordingDuration] = useState(0)
+  const [isStartingRecording, setIsStartingRecording] = useState(false) // Prevent rapid clicks
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null)
+  const [audioObjects, setAudioObjects] = useState<{[key: string]: Audio.Sound}>({})
+  const [audioLoadingStates, setAudioLoadingStates] = useState<{[key: string]: boolean}>({})
   const [showTranscription, setShowTranscription] = useState<{[key: string]: boolean}>({})
   const [inputMode, setInputMode] = useState<'voice' | 'text'>('voice') // 输入模式切换
+  const [lastMessageTimestamp, setLastMessageTimestamp] = useState<string | null>(null) // 追踪最新消息时间戳
   const flatListRef = useRef<FlatList>(null)
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const voiceRecorderRef = useRef<VoiceRecorderRef>(null)
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null) // 轮询计时器
 
   // 模拟数据加载
   useEffect(() => {
     loadChatData()
-  }, [contactId])
+    startPolling() // 开始轮询新消息
+    
+    // 清理函数
+    return () => {
+      stopPolling()
+    }
+  }, [conversationId])
+
+  // 清理音频对象
+  useEffect(() => {
+    // 设置音频模式
+    const setupAudio = async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+          interruptionModeIOS: 2, // Do not mix
+          shouldDuckAndroid: true,
+          interruptionModeAndroid: 1, // Do not mix
+          playThroughEarpieceAndroid: false,
+          staysActiveInBackground: false,
+        });
+      } catch (error) {
+        console.error('Error setting up audio mode:', error);
+      }
+    };
+    
+    setupAudio();
+    
+    return () => {
+      // 组件卸载时清理所有音频对象
+      Object.values(audioObjects).forEach(async (sound) => {
+        try {
+          await sound.unloadAsync();
+        } catch (error) {
+          console.error('Error unloading audio:', error);
+        }
+      });
+      
+      // 清理轮询计时器
+      stopPolling();
+    };
+  }, [audioObjects])
 
   // 预留的API接口函数
   const loadChatData = async () => {
-    // TODO: 替换为真实的API调用
-    // const chatResponse = await api.getChatMessages(contactId)
-    // const contactResponse = await api.getContactInfo(contactId)
-    
-    // 模拟联系人数据
-    const mockContact: Contact = {
-      id: contactId,
-      name: contactName,
-      avatar: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=100&h=100&fit=crop&crop=face",
-      isOnline: true,
-      specialty: "Cardiologist",
+    try {
+      const response = await axios.get(`${serverUrl}/api/messages/getConversation`, {
+        params: { conversationId },
+        withCredentials: true,
+      });
+      
+      const conversationData = response.data;
+      const currentUser = conversationData.currentUser;
+      const conversation = conversationData.conversation;
+      console.log('Conversation data:', conversationData)
+      // 设置联系人信息
+      if (conversation) {
+        const apiContact: Contact = {
+          id: conversation.id,
+          name: conversationName, // 使用从 MessageScreen 传递的名称
+          avatar: require("../../assets/images/avatar-placeholder.jpg"),
+          isOnline: true,
+          specialty: "Doctor", // 可以从 API 获取
+        }
+        setContact(apiContact);
+      }
+      
+      // 将 API 响应转换为消息格式
+      if (conversation && conversation.messages) {
+        const formattedMessages = conversation.messages.map((msg: any) => ({
+          id: msg.id.toString(),
+          text: msg.audioTranscription || msg.content, // 使用转录文本或内容
+          audioFileId: msg.audioFileId, // 添加音频文件ID
+          timestamp: new Date(msg.timestamp),
+          isFromUser: msg.sender.id === currentUser,
+          isRead: true, // 假设已读状态
+          messageType: msg.audioFileId ? 'voice' : 'text', // 根据是否有音频文件确定类型
+          transcription: msg.audioTranscription, // 语音转录文本
+        }));
+        
+        setMessages(formattedMessages);
+        
+        // 更新最新消息时间戳
+        if (formattedMessages.length > 0) {
+          const latestMessage = formattedMessages[formattedMessages.length - 1];
+          setLastMessageTimestamp(latestMessage.timestamp.toISOString());
+        }
+      }
+      
+    } catch (error) {
+      console.error("Error loading conversation data:", error);
+      
+      // 如果 API 调用失败，使用模拟数据作为回退
+      const mockContact: Contact = {
+        id: conversationId,
+        name: conversationName,
+        avatar: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=100&h=100&fit=crop&crop=face",
+        isOnline: true,
+        specialty: "Cardiologist",
+      }
+
+      const mockMessages: ChatMessage[] = [
+        {
+          id: "1",
+          text: "Hello! How can I help you today?",
+          timestamp: new Date(Date.now() - 3600000),
+          isFromUser: false,
+          isRead: true,
+          messageType: 'text',
+        },
+        {
+          id: "2",
+          text: "I've been having some health concerns and would like to discuss them.",
+          timestamp: new Date(Date.now() - 3500000),
+          isFromUser: true,
+          isRead: true,
+          messageType: 'text',
+        },
+      ]
+
+      setContact(mockContact)
+      setMessages(mockMessages)
     }
-
-    // 模拟聊天记录 - 混合语音和文字消息
-    const mockMessages: ChatMessage[] = [
-      {
-        id: "1",
-        text: "Hello! How can I help you today?",
-        timestamp: new Date(Date.now() - 3600000), // 1 hour ago
-        isFromUser: false,
-        isRead: true,
-        messageType: 'text',
-      },
-      {
-        id: "2",
-        audioUrl: "mock://voice-message-1.mp3",
-        audioDuration: 8,
-        transcription: "Hi Dr. Sam, I've been feeling some chest discomfort lately.",
-        timestamp: new Date(Date.now() - 3500000),
-        isFromUser: true,
-        isRead: true,
-        messageType: 'voice',
-      },
-      {
-        id: "3",
-        audioUrl: "mock://voice-message-2.mp3",
-        audioDuration: 15,
-        transcription: "I understand your concern. Can you describe the discomfort in more detail? When did it start?",
-        timestamp: new Date(Date.now() - 3400000),
-        isFromUser: false,
-        isRead: true,
-        messageType: 'voice',
-      },
-      {
-        id: "4",
-        audioUrl: "mock://voice-message-3.mp3",
-        audioDuration: 12,
-        transcription: "It started about 3 days ago. It's a mild pressure feeling, especially when I walk upstairs.",
-        timestamp: new Date(Date.now() - 3300000),
-        isFromUser: true,
-        isRead: true,
-        messageType: 'voice',
-      },
-      {
-        id: "5",
-        audioUrl: "mock://voice-message-4.mp3",
-        audioDuration: 25,
-        transcription: "Thank you for the details. Based on your symptoms, I'd recommend scheduling an in-person appointment for a proper examination. In the meantime, please avoid strenuous activities.",
-        timestamp: new Date(Date.now() - 300000), // 5 minutes ago
-        isFromUser: false,
-        isRead: false,
-        messageType: 'voice',
-      },
-    ]
-
-    setContact(mockContact)
-    setMessages(mockMessages)
   }
 
-  // API接口函数 - 预留给后端集成
+  // 轮询新消息函数
+  const checkForNewMessages = async () => {
+    // 如果正在录音，跳过此次轮询以避免干扰
+    if (isRecording) {
+      console.log('Skipping polling while recording...');
+      return;
+    }
+    
+    try {
+      console.log('Polling for new messages...');
+      const response = await axios.get(`${serverUrl}/api/messages/getConversation`, {
+        params: { 
+          conversationId, // 只获取此时间戳之后的消息
+        },
+        withCredentials: true,
+      });
+      
+      const conversationData = response.data;
+      const currentUser = conversationData.currentUser;
+      const conversation = conversationData.conversation;
+      
+      if (conversation && conversation.messages && conversation.messages.length > 0) {
+        console.log(`Found ${conversation.messages.length} new messages`);
+        
+        // 转换新消息格式
+        const newMessages = conversation.messages.map((msg: any) => ({
+          id: msg.id.toString(),
+          text: msg.audioTranscription || msg.content,
+          audioFileId: msg.audioFileId,
+          timestamp: new Date(msg.timestamp),
+          isFromUser: msg.sender.id === currentUser,
+          isRead: true,
+          messageType: msg.audioFileId ? 'voice' : 'text',
+          transcription: msg.audioTranscription,
+        }));
+        
+        // 添加新消息到现有消息列表
+        setMessages(prev => {
+          // 避免重复消息
+          const existingIds = new Set(prev.map(msg => msg.id));
+          const uniqueNewMessages = newMessages.filter((msg: ChatMessage) => !existingIds.has(msg.id));
+          
+          if (uniqueNewMessages.length > 0) {
+            console.log(`Adding ${uniqueNewMessages.length} unique new messages`);
+            // 自动滚动到底部显示新消息
+            setTimeout(() => {
+              flatListRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+            
+            return [...prev, ...uniqueNewMessages];
+          }
+          return prev;
+        });
+        
+        // 更新最新消息时间戳
+        if (newMessages.length > 0) {
+          const latestMessage = newMessages[newMessages.length - 1];
+          setLastMessageTimestamp(latestMessage.timestamp.toISOString());
+        }
+      }
+    } catch (error) {
+      console.error('Error polling for new messages:', error);
+      // 静默失败，不影响用户体验
+    }
+  };
+
+  // 开始轮询
+  const startPolling = () => {
+    console.log('Starting message polling...');
+    // 每3秒检查一次新消息
+    pollingIntervalRef.current = setInterval(checkForNewMessages, 3000);
+  };
+
+  // 停止轮询
+  const stopPolling = () => {
+    console.log('Stopping message polling...');
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  };
+
+  // API接口函数 - 发送文本消息
   const sendMessage = async (messageText: string) => {
     if (!messageText.trim()) return
 
@@ -156,21 +303,43 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
     setMessages(prev => [...prev, newMessage])
     setInputText("")
 
-    // TODO: 发送到后端API
-    // await api.sendMessage(contactId, messageText)
+    try {
+      // 暂停轮询以避免冲突
+      stopPolling();
+      
+      // 发送到后端API
+      console.log('Sending text message:', messageText.trim())
+      const response = await axios.post(`${serverUrl}/api/messages/sendText`, {
+        conversationId: conversationId,
+        audioTranscription: messageText.trim(),
+      }, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-    // 模拟医生回复 (实际情况下这会通过WebSocket或推送通知接收)
-    setTimeout(() => {
-      const doctorReply: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        text: "Thank you for your message. I'll review this and get back to you shortly.",
-        timestamp: new Date(),
-        isFromUser: false,
-        isRead: false,
-        messageType: 'text',
-      }
-      setMessages(prev => [...prev, doctorReply])
-    }, 2000)
+      console.log('Text message sent successfully:', response.data);
+
+      // 重新加载聊天数据以获取最新的消息
+      setTimeout(() => {
+        loadChatData().then(() => {
+          // 重新开始轮询
+          startPolling();
+        });
+      }, 500);
+
+    } catch (error) {
+      console.error('Error sending text message:', error);
+      
+      // 即使出错也要重新开始轮询
+      setTimeout(() => {
+        startPolling();
+      }, 1000);
+      
+      // 如果发送失败，显示错误消息（可选）
+      // 这里可以添加错误处理逻辑，比如显示重试按钮
+    }
 
     // 滚动到底部
     setTimeout(() => {
@@ -179,20 +348,57 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
   }
 
   // 语音录制功能
-  const startRecording = () => {
-    setIsRecording(true)
-    setRecordingDuration(0)
+  const startRecording = async () => {
+    // 防止在已有录音进行时开始新录音
+    if (isRecording || isStartingRecording) {
+      console.log('ChatDetailScreen: Recording already in progress or starting, ignoring start request');
+      return;
+    }
     
-    // 开始计时
-    recordingTimerRef.current = setInterval(() => {
-      setRecordingDuration(prev => prev + 1)
-    }, 1000)
+    // 防止多重点击 - 额外检查是否已有计时器在运行
+    if (recordingTimerRef.current) {
+      console.log('ChatDetailScreen: Timer already running, ignoring start request');
+      return;
+    }
+    
+    console.log('ChatDetailScreen: Starting recording...');
+    setIsStartingRecording(true); // 设置开始标志
+    
+    try {
+      setIsRecording(true)
+      setRecordingDuration(0)
+      
+      // 开始计时
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1)
+      }, 1000)
 
-    // TODO: 实际录音逻辑
-    // await AudioRecorder.startRecording()
+      // 使用 VoiceRecorder 组件开始录音
+      voiceRecorderRef.current?.start()
+      
+    } catch (error) {
+      console.error('ChatDetailScreen: Error starting recording:', error);
+      // 如果出错，重置状态
+      setIsRecording(false);
+      setRecordingDuration(0);
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+    } finally {
+      setIsStartingRecording(false); // 清除开始标志
+    }
   }
 
   const stopRecording = async () => {
+    console.log('ChatDetailScreen: Stopping recording...');
+    
+    // 防止重复停止
+    if (!isRecording) {
+      console.log('ChatDetailScreen: No recording to stop');
+      return;
+    }
+    
     setIsRecording(false)
     
     if (recordingTimerRef.current) {
@@ -200,58 +406,187 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
       recordingTimerRef.current = null
     }
 
-    // TODO: 停止录音并获取文件
-    // const audioFile = await AudioRecorder.stopRecording()
-    // const transcription = await api.transcribeAudio(audioFile)
+    // 使用 VoiceRecorder 组件停止录音
+    voiceRecorderRef.current?.stop()
+    
+    setRecordingDuration(0)
+  }
 
-    // 模拟语音消息
-    const mockAudioUrl = `mock://voice-${Date.now()}.mp3`
-    const mockTranscription = "This is a mock transcription of the voice message."
-
+  // 处理语音转文字结果
+  const handleTranscription = (transcription: string, audioUri?: string) => {
+    console.log('ChatDetailScreen: Received transcription:', transcription);
+    const messageId = Date.now().toString();
     const voiceMessage: ChatMessage = {
-      id: Date.now().toString(),
-      audioUrl: mockAudioUrl,
-      audioDuration: recordingDuration,
-      transcription: mockTranscription,
+      id: messageId,
+      text: transcription, // 使用转录文本作为消息内容
       timestamp: new Date(),
       isFromUser: true,
       isRead: false,
-      messageType: 'voice',
+      messageType: 'voice', // 标记为语音消息
+      transcription: transcription, // 保存转录文本
+      audioFileId: messageId, // 使用消息ID作为临时audioFileId
     }
 
     setMessages(prev => [...prev, voiceMessage])
-    setRecordingDuration(0)
+
+    // 如果有本地音频URI，直接创建音频对象供播放
+    if (audioUri) {
+      console.log('Storing local audio for immediate playback:', audioUri);
+      Audio.Sound.createAsync(
+        { uri: audioUri },
+        { shouldPlay: false }
+      ).then(({ sound }) => {
+        // 存储音频对象
+        setAudioObjects(prev => ({ ...prev, [messageId]: sound }));
+        
+        // 设置播放完成回调
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (status.isLoaded && status.didJustFinish) {
+            setPlayingMessageId(null);
+          }
+        });
+        
+        console.log('Local audio ready for playback');
+      }).catch((error) => {
+        console.error('Error creating local audio object:', error);
+      });
+    }
 
     // 滚动到底部
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true })
     }, 100)
+
+    // 不再自动重新加载聊天数据，让用户可以立即播放本地音频
+    // setTimeout(() => {
+    //   loadChatData()
+    // }, 1000)
   }
 
-  // 播放语音
-  const toggleVoicePlayback = (messageId: string) => {
-    if (playingMessageId === messageId) {
-      // 停止播放
-      setPlayingMessageId(null)
-      // TODO: 停止音频播放
-      // AudioPlayer.stop()
-    } else {
-      // 开始播放
-      setPlayingMessageId(messageId)
-      // TODO: 播放音频
-      // AudioPlayer.play(audioUrl)
+  // 获取并播放音频消息
+  const fetchAndPlayAudio = async (messageId: string) => {
+    try {
+      setAudioLoadingStates(prev => ({ ...prev, [messageId]: true }));
       
-      // 模拟播放完成
-      setTimeout(() => {
-        setPlayingMessageId(null)
-      }, 3000)
+      console.log('Fetching audio for message:', messageId);
+      
+      // 获取音频数据
+      const response = await axios.get(`${serverUrl}/api/messages/getMessageAudio`, {
+        params: { messageId },
+        responseType: 'arraybuffer',
+        withCredentials: true,
+      });
+      
+      // 将字节数组转换为Base64
+      const audioData = response.data;
+      const base64Audio = btoa(
+        new Uint8Array(audioData).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+      
+      // 创建音频URI
+      const audioUri = `data:audio/mp4;base64,${base64Audio}`;
+      
+      // 创建并加载音频对象
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: audioUri },
+        { shouldPlay: false }
+      );
+      
+      // 存储音频对象
+      setAudioObjects(prev => ({ ...prev, [messageId]: sound }));
+      
+      // 设置播放完成回调
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          setPlayingMessageId(null);
+        }
+      });
+      
+      setAudioLoadingStates(prev => ({ ...prev, [messageId]: false }));
+      
+      // 开始播放
+      await sound.playAsync();
+      setPlayingMessageId(messageId);
+      
+    } catch (error) {
+      console.error('Error fetching/playing audio:', error);
+      setAudioLoadingStates(prev => ({ ...prev, [messageId]: false }));
+    }
+  };
+
+  // 播放语音
+  const toggleVoicePlayback = async (messageId: string, audioFileId?: string) => {
+    console.log('toggleVoicePlayback called:', { messageId, audioFileId, playingMessageId });
+    
+    try {
+      if (playingMessageId === messageId) {
+        // 停止播放
+        console.log('Stopping audio for message:', messageId);
+        const audioObject = audioObjects[messageId];
+        if (audioObject) {
+          try {
+            const status = await audioObject.getStatusAsync();
+            if (status.isLoaded) {
+              await audioObject.stopAsync();
+            }
+          } catch (stopError) {
+            console.warn('Error stopping audio:', stopError);
+          }
+        }
+        setPlayingMessageId(null);
+      } else {
+        // 停止其他正在播放的音频
+        if (playingMessageId && audioObjects[playingMessageId]) {
+          console.log('Stopping previous audio:', playingMessageId);
+          try {
+            const status = await audioObjects[playingMessageId].getStatusAsync();
+            if (status.isLoaded) {
+              await audioObjects[playingMessageId].stopAsync();
+            }
+          } catch (stopError) {
+            console.warn('Error stopping previous audio:', stopError);
+          }
+        }
+        
+        // 开始播放新音频
+        if (audioFileId) {
+          console.log('Starting audio playback for:', messageId);
+          if (audioObjects[messageId]) {
+            // 检查音频是否已正确加载
+            try {
+              const status = await audioObjects[messageId].getStatusAsync();
+              if (status.isLoaded) {
+                console.log('Audio already loaded, replaying...');
+                await audioObjects[messageId].replayAsync();
+                setPlayingMessageId(messageId);
+              } else {
+                console.log('Audio object exists but not loaded, fetching again...');
+                await fetchAndPlayAudio(messageId);
+              }
+            } catch (statusError) {
+              console.log('Error checking audio status, fetching again...');
+              await fetchAndPlayAudio(messageId);
+            }
+          } else {
+            // 如果音频未加载，先获取再播放
+            console.log('Audio not loaded, fetching...');
+            await fetchAndPlayAudio(messageId);
+          }
+        } else {
+          console.warn('No audioFileId provided for message:', messageId);
+        }
+      }
+    } catch (error) {
+      console.error('Error in toggleVoicePlayback:', error);
+      setPlayingMessageId(null);
+      setAudioLoadingStates(prev => ({ ...prev, [messageId]: false }));
     }
   }
 
   // 视频/语音通话功能
   const startVideoCall = () => {
     // 导航到视频通话界面
-    navigation.navigate('VideoCall', { contactId, contactName })
+    navigation.navigate('VideoCall', { conversationId, conversationName })
   }
 
   const startVoiceCall = () => {
@@ -284,27 +619,32 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
   }
 
   const renderMessage: ListRenderItem<ChatMessage> = ({ item }) => (
-    <View style={[
-      $messageContainer,
-      item.isFromUser ? $userMessageContainer : $doctorMessageContainer
-    ]}>
-      {!item.isFromUser && (
-        <Image
-          source={{ uri: contact?.avatar }}
-          style={$messageAvatar}
-          defaultSource={require("../../assets/images/avatar-placeholder.jpg")}
-        />
-      )}
-      <View style={[
-        $messageBubble,
-        item.isFromUser ? $userMessageBubble : $doctorMessageBubble
+    <View style={[ 
+      $messageContainer, 
+      item.isFromUser ? $userMessageContainer : $doctorMessageContainer 
+    ]}> 
+      {!item.isFromUser && ( 
+        <Image 
+          source={
+            contact?.avatar && typeof contact.avatar === 'string'
+              ? { uri: contact.avatar }
+              : require("../../assets/images/avatar-placeholder.jpg")
+          }
+          style={$messageAvatar} 
+          defaultSource={require("../../assets/images/avatar-placeholder.jpg")} 
+        /> 
+      )} 
+      <View style={[ 
+        $messageBubble, 
+        item.isFromUser ? $userMessageBubble : $doctorMessageBubble 
       ]}>
         {item.messageType === 'voice' ? (
           // 语音消息
           <View style={$voiceMessageContainer}>
             <Pressable
-              style={$playButton}
-              onPress={() => toggleVoicePlayback(item.id)}
+              style={[$playButton, !item.audioFileId && $disabledButton]}
+              onPress={() => toggleVoicePlayback(item.id, item.audioFileId)}
+              disabled={!item.audioFileId || audioLoadingStates[item.id]}
               accessible
               accessibilityRole="button"
               accessibilityLabel={playingMessageId === item.id ? "Stop voice message" : "Play voice message"}
@@ -313,7 +653,7 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
                 $playButtonText,
                 item.isFromUser ? $userPlayButtonText : $doctorPlayButtonText
               ]}>
-                {playingMessageId === item.id ? "⏸️" : "▶️"}
+                {!item.audioFileId ? "❌" : (audioLoadingStates[item.id] ? "⏳" : (playingMessageId === item.id ? "⏸️" : "▶️"))}
               </Text>
             </Pressable>
             
@@ -407,12 +747,16 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
         
         <View style={$contactHeader}>
           <Image
-            source={{ uri: contact?.avatar }}
+            source={
+              contact?.avatar && typeof contact.avatar === 'string'
+                ? { uri: contact.avatar }
+                : require("../../assets/images/avatar-placeholder.jpg")
+            }
             style={$headerAvatar}
             defaultSource={require("../../assets/images/avatar-placeholder.jpg")}
           />
           <View style={$contactInfo}>
-            <Text style={$contactName}>{contact?.name}</Text>
+            <Text style={$conversationName}>{contact?.name}</Text>
             {contact?.isOnline && (
               <Text style={$onlineStatus}>● Online</Text>
             )}
@@ -489,11 +833,11 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
                 $largeMicButton,
                 isRecording ? $largeMicButtonRecording : $largeMicButtonIdle
               ]}
-              onPressIn={startRecording}
-              onPressOut={stopRecording}
+              onPress={isRecording ? stopRecording : startRecording}
+              disabled={isStartingRecording} // 禁用按钮防止快速点击
               accessible
               accessibilityRole="button"
-              accessibilityLabel={isRecording ? "Recording voice message, release to send" : "Hold to record voice message"}
+              accessibilityLabel={isRecording ? "Stop recording voice message" : "Start recording voice message"}
             >
               <Text style={$largeMicIcon}>
                 {isRecording ? "🔴" : "🎤"}
@@ -502,9 +846,9 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
 
             {/* 录音提示 */}
             {isRecording ? (
-              <Text style={$recordingHintText}>🔴 Recording... Release to send</Text>
+              <Text style={$recordingHintText}>🔴 Recording... Press again to send</Text>
             ) : (
-              <Text style={$micHintText}>Hold to record voice message</Text>
+              <Text style={$micHintText}>Press to start recording voice message</Text>
             )}
           </View>
         )}
@@ -522,6 +866,13 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
           </Text>
         </Pressable>
       </KeyboardAvoidingView>
+      
+      {/* VoiceRecorder Component */}
+      <VoiceRecorder
+        ref={voiceRecorderRef}
+        conversationId={conversationId}
+        onTranscription={handleTranscription}
+      />
     </Screen>
   )
 }
@@ -571,7 +922,7 @@ const $contactInfo: ViewStyle = {
   flex: 1,
 }
 
-const $contactName: TextStyle = {
+const $conversationName: TextStyle = {
   fontSize: 16,
   fontWeight: "600",
   color: "#000",
@@ -879,6 +1230,10 @@ const $playButton: ViewStyle = {
   justifyContent: "center",
   alignItems: "center",
   marginRight: 8,
+}
+
+const $disabledButton: ViewStyle = {
+  opacity: 0.5,
 }
 
 const $playButtonText: TextStyle = {
