@@ -89,6 +89,8 @@ const VoiceRecorder = forwardRef<VoiceRecorderRef, VoiceRecorderProps>(({ conver
       console.log('VoiceRecorder: Recording started successfully');
     } catch (error) {
       console.error('VoiceRecorder: Error starting recording:', error);
+      setRecording(null); // Ensure recording state is cleared
+      // Notify parent that recording failed to start
       if (onTranscription) {
         onTranscription("Error starting recording. Please try again.");
       }
@@ -107,6 +109,8 @@ const VoiceRecorder = forwardRef<VoiceRecorderRef, VoiceRecorderProps>(({ conver
     const uri = recording.getURI();
     setRecording(null);
     console.log('VoiceRecorder: Recording stopped, URI:', uri);
+
+    // Don't call onRecordingStop here - wait until after upload/transcription is complete
 
     const formData = new FormData();
     formData.append('audio', {
@@ -133,7 +137,10 @@ const VoiceRecorder = forwardRef<VoiceRecorderRef, VoiceRecorderProps>(({ conver
       }
     } catch (error) {
       console.error('VoiceRecorder: Error sending voice message:', error);
-      // Optionally call onTranscription with an error message or handle the error
+      // Always call onTranscription to notify parent that recording is complete, even on error
+      if (onTranscription) {
+        onTranscription("Failed to send voice message. Please try again.");
+      }
     }
   };
 

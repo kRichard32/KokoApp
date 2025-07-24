@@ -1,22 +1,28 @@
 package com.Koko.app.service;
 
-import com.Koko.app.config.OAuthConfig;
+import java.math.BigInteger;
+import java.security.KeyFactory;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.RSAPublicKeySpec;
+import java.util.Base64;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.crypto.SecretKey;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.Keys;
+
+import com.Koko.app.config.OAuthConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import javax.crypto.SecretKey;
-import java.util.Base64;
-import java.util.Date;
-import java.util.Map;
-import java.util.HashMap;
-import java.security.interfaces.RSAPublicKey;
-import java.security.KeyFactory;
-import java.security.spec.RSAPublicKeySpec;
-import java.math.BigInteger;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 
 @Service
 public class JwtService {

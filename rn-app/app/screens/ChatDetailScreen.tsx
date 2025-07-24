@@ -74,6 +74,16 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
   const voiceRecorderRef = useRef<VoiceRecorderRef>(null)
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null) // 轮询计时器
+  const audioObjectsRef = useRef<{[key: string]: Audio.Sound}>({}) // 用于清理的音频对象引用
+
+  // Helper function to update audio objects
+  const addAudioObject = (messageId: string, sound: Audio.Sound) => {
+    setAudioObjects(prev => {
+      const newObjects = { ...prev, [messageId]: sound };
+      audioObjectsRef.current = newObjects; // Keep ref in sync
+      return newObjects;
+    });
+  };
 
   // 模拟数据加载
   useEffect(() => {
@@ -86,9 +96,8 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
     }
   }, [conversationId])
 
-  // 清理音频对象
+  // 设置音频模式
   useEffect(() => {
-    // 设置音频模式
     const setupAudio = async () => {
       try {
         await Audio.setAudioModeAsync({
@@ -106,10 +115,13 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
     };
     
     setupAudio();
-    
+  }, []);
+
+  // 组件卸载时清理
+  useEffect(() => {
     return () => {
-      // 组件卸载时清理所有音频对象
-      Object.values(audioObjects).forEach(async (sound) => {
+      // 清理所有音频对象
+      Object.values(audioObjectsRef.current).forEach(async (sound) => {
         try {
           await sound.unloadAsync();
         } catch (error) {
@@ -120,7 +132,7 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
       // 清理轮询计时器
       stopPolling();
     };
-  }, [audioObjects])
+  }, [])
 
   // 预留的API接口函数
   const loadChatData = async () => {
@@ -206,17 +218,7 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
 
   // 轮询新消息函数
   const checkForNewMessages = async () => {
-    // 如果正在录音，跳过此次轮询以避免干扰
-    if (isRecording) {
-      console.log('Skipping polling while recording...');
-      return;
-    }
-    
-    // 如果正在播放音频，也跳过轮询以避免潜在的音频中断
-    if (playingMessageId) {
-      console.log('Skipping polling while playing audio...');
-      return;
-    }
+    // Continue polling regardless of recording or playback state
     
     try {
       console.log('Polling for new messages...');
@@ -310,8 +312,7 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
     setInputText("")
 
     try {
-      // 暂停轮询以避免冲突
-      stopPolling();
+      // Keep polling running during message send
       
       // 发送到后端API
       console.log('Sending text message:', messageText.trim())
@@ -329,19 +330,13 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
 
       // 重新加载聊天数据以获取最新的消息
       setTimeout(() => {
-        loadChatData().then(() => {
-          // 重新开始轮询
-          startPolling();
-        });
+        loadChatData();
       }, 500);
 
     } catch (error) {
       console.error('Error sending text message:', error);
       
-      // 即使出错也要重新开始轮询
-      setTimeout(() => {
-        startPolling();
-      }, 1000);
+      // Don't need to restart polling since it never stopped
       
       // 如果发送失败，显示错误消息（可选）
       // 这里可以添加错误处理逻辑，比如显示重试按钮
@@ -421,6 +416,15 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
   // 处理语音转文字结果
   const handleTranscription = (transcription: string, audioUri?: string) => {
     console.log('ChatDetailScreen: Received transcription:', transcription);
+    
+    // 确保录音状态被重置
+    setIsRecording(false);
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    setRecordingDuration(0);
+    
     const messageId = Date.now().toString();
     const voiceMessage: ChatMessage = {
       id: messageId,
@@ -443,20 +447,18 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
         { shouldPlay: false }
       ).then(({ sound }) => {
         // 存储音频对象
-        setAudioObjects(prev => ({ ...prev, [messageId]: sound }));
+        addAudioObject(messageId, sound);
         
         // 设置播放完成回调
         sound.setOnPlaybackStatusUpdate((status) => {
           if (status.isLoaded && status.didJustFinish) {
             setPlayingMessageId(null);
-            // 确保轮询在音频播放完成后继续
-            if (!pollingIntervalRef.current) {
-              startPolling();
-            }
+            // Polling continues regardless of audio state
           }
         });
         
         console.log('Local audio ready for playback');
+        setIsRecording(false);
       }).catch((error) => {
         console.error('Error creating local audio object:', error);
       });
@@ -503,16 +505,13 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
       );
       
       // 存储音频对象
-      setAudioObjects(prev => ({ ...prev, [messageId]: sound }));
+      addAudioObject(messageId, sound);
       
       // 设置播放完成回调
       sound.setOnPlaybackStatusUpdate((status) => {
         if (status.isLoaded && status.didJustFinish) {
           setPlayingMessageId(null);
-          // 确保轮询在音频播放完成后继续
-          if (!pollingIntervalRef.current) {
-            startPolling();
-          }
+          // Polling continues regardless of audio state
         }
       });
       
