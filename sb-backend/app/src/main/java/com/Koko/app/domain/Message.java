@@ -12,7 +12,7 @@ public class Message {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     @SequenceGenerator(name = "message_seq", sequenceName = "message_seq", allocationSize = 1)
-    private int id;
+    private long id;
 
     @ManyToOne
     private Profile sender;
@@ -28,11 +28,11 @@ public class Message {
     private Conversation conversation;
 
 
-    public int getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(long id) {
         this.id = id;
     }
 

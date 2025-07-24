@@ -14,7 +14,7 @@ public class Conversation {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     @SequenceGenerator(name = "conversation_seq", sequenceName = "conversation_seq", allocationSize = 1)
-    private int id;
+    private long id;
 
     private int messageCount;
 
@@ -29,11 +29,11 @@ public class Conversation {
     @OrderBy("timestamp ASC")
     private List<Message> messages;
 
-    public int getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(long id) {
         this.id = id;
     }
 

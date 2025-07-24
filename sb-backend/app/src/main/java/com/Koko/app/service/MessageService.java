@@ -15,7 +15,7 @@ public class MessageService {
     public void save(Message message) {
         messageRepository.save(message);
     }
-    public Optional<Message> getMessage(int id) {
+    public Optional<Message> getMessage(long id) {
         return messageRepository.findById(id);
     }
 

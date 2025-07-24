@@ -17,7 +17,7 @@ public class ConversationService {
     public void save(Conversation conversation) {
         conversationRepository.save(conversation);
     }
-    public Conversation getConversation(int id) {
+    public Conversation getConversation(long id) {
         Conversation conversation = conversationRepository.findById(id).orElse(null);
         if (conversation == null) {
             throw new ResponseStatusException(
@@ -29,10 +29,10 @@ public class ConversationService {
     public List<Conversation> getConversationsByUserID(long id) {
         return conversationRepository.findByUsersId(id);
     }
-    public Conversation getConversationByMessageID(int id) {
+    public Conversation getConversationByMessageID(long id) {
         return conversationRepository.findByMessagesId(id);
     }
-    public Conversation getConversationByConversationID(long userId, int conversationId) {
+    public Conversation getConversationByConversationID(long userId, long conversationId) {
         return conversationRepository.findByUsersIdAndId(userId,conversationId);
     }
 }

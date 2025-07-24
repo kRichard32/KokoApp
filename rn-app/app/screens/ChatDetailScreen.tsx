@@ -212,9 +212,15 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
       return;
     }
     
+    // 如果正在播放音频，也跳过轮询以避免潜在的音频中断
+    if (playingMessageId) {
+      console.log('Skipping polling while playing audio...');
+      return;
+    }
+    
     try {
       console.log('Polling for new messages...');
-      const response = await axios.get(`${serverUrl}/api/messages/getConversation`, {
+      const response = await axios.get(`${serverUrl}/api/messages/getConversationWithoutUser`, {
         params: { 
           conversationId, // 只获取此时间戳之后的消息
         },
@@ -443,6 +449,10 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
         sound.setOnPlaybackStatusUpdate((status) => {
           if (status.isLoaded && status.didJustFinish) {
             setPlayingMessageId(null);
+            // 确保轮询在音频播放完成后继续
+            if (!pollingIntervalRef.current) {
+              startPolling();
+            }
           }
         });
         
@@ -499,6 +509,10 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
       sound.setOnPlaybackStatusUpdate((status) => {
         if (status.isLoaded && status.didJustFinish) {
           setPlayingMessageId(null);
+          // 确保轮询在音频播放完成后继续
+          if (!pollingIntervalRef.current) {
+            startPolling();
+          }
         }
       });
       

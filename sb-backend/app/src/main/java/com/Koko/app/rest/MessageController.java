@@ -55,9 +55,9 @@ public class MessageController {
 
     @CrossOrigin()
     @PostMapping("/create")
-    public Map<String, Integer> createConversation(@CookieValue(value = "token", required = false) String token,
+    public Map<String, Long> createConversation(@CookieValue(value = "token", required = false) String token,
                                                   @RequestBody ConversationTransfer newConversation) {
-        Map<String, Integer> result = new HashMap<>();
+        Map<String, Long> result = new HashMap<>();
         Map<String, Object> userInfo = jwtService.decodeIdToken(token);
         Profile profile = profileService.getProfileByEmail((String) userInfo.get("email"));
 
@@ -154,9 +154,20 @@ public class MessageController {
         return conversationDto;
     }
     @CrossOrigin()
+    @GetMapping("/getConversationWithoutUser")
+    public ConversationDto getConversationWithoutUser(@CookieValue(value = "token", required = false) String token,
+                                           @RequestParam("conversationId") int conversationId) {
+        Map<String, Object> userInfo = jwtService.decodeIdToken(token);
+        Profile profile = profileService.getProfileByEmail((String) userInfo.get("email"));
+        Conversation conversation = conversationService.getConversationByConversationID(profile.getId(),conversationId);
+        conversation.getMessages().removeIf(message -> message.getSender().equals(profile));
+        ConversationDto conversationDto = new ConversationDto(conversation,profile);
+        return conversationDto;
+    }
+    @CrossOrigin()
     @GetMapping("/getMessageAudio")
     public byte[] getMessageAudio(@CookieValue(value = "token", required = false) String token,
-                                  @RequestParam("messageId") int messageId) {
+                                  @RequestParam("messageId") long messageId) {
         Map<String, Object> userInfo = jwtService.decodeIdToken(token);
         Message message = messageService.getMessage(messageId).orElse(null);
         if (message == null) {
