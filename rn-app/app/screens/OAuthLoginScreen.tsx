@@ -51,7 +51,7 @@ export const OAuthLoginScreen: FC = function OAuthLoginScreen() {
   return (
     <Screen preset="scroll" contentContainerStyle={$styles.container} safeAreaEdges={["top"]}>
       <View style={themed($container)}>
-        <Text preset="heading" text="Welcome to Kindial" style={themed($title)} />
+        <Text preset="heading" text="Welcome to Koko" style={themed($title)} />
         <Text text="Choose your preferred sign-in method" style={themed($subtitle)} />
 
         {networkError && (

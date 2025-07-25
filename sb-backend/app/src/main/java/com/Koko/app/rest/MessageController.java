@@ -1,11 +1,7 @@
 package com.Koko.app.rest;
 
 
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -63,7 +59,7 @@ public class MessageController {
 
         Conversation conversation = new Conversation();
 
-        List<String> userIDs = newConversation.getUserIDs();
+        Set<String> userIDs = newConversation.getUserIDs();
         userIDs.add(profile.getId().toString());
         if (!userIDs.contains(profile.getId().toString())){
             return null;
@@ -132,7 +128,7 @@ public class MessageController {
         conversations.sort(Comparator.comparing(Conversation::getTimestamp).reversed());
 
         for (Conversation conversation : conversations) {
-            List<Profile> profiles = conversation.getUsers();
+            Set<Profile> profiles = conversation.getUsers();
             for (Profile profile1 : profiles) {
                 if (profile.getId().equals(profile1.getId())) {
                     profiles.remove(profile1);
@@ -174,7 +170,7 @@ public class MessageController {
             return null;
         }
         Conversation conversation = conversationService.getConversationByMessageID(messageId);
-        List<Profile> profiles = conversation.getUsers();
+        Set<Profile> profiles = conversation.getUsers();
         Profile profile = profileService.getProfileByEmail((String) userInfo.get("email"));
 
         boolean canSee = false;

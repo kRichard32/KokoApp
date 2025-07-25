@@ -4,6 +4,7 @@ package com.Koko.app.rest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -48,7 +49,7 @@ public class ProfileController {
     public Map<String, String> createProfile(@CookieValue(value = "token", required = false) String token,
                                              @RequestBody ProfileTransfer profileData) {
         Map<String, Object> userInfo = jwtService.decodeIdToken(token);
-        List<String> traits = profileData.getTraits();
+        Set<String> traits = profileData.getTraits();
         Profile profile = new Profile();
         profile.setEmail(userInfo.get("email").toString());
         profile.setTraits(traitService.getTraits(traits));
@@ -63,7 +64,7 @@ public class ProfileController {
 
     @PostMapping("/addTrait")
     public Map<String, String> addTrait(@RequestBody ProfileTransfer profileData) {
-        List<String> traits = profileData.getTraits();
+        Set<String> traits = profileData.getTraits();
         Profile profile = profileService.getProfile(profileData.getId());
         HashMap<String, String> map = new HashMap<>();
         profile.addTraits(traitService.getTraits(traits));

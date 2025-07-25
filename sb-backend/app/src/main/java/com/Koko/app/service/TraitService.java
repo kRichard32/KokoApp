@@ -31,8 +31,8 @@ public class TraitService {
         save(newTrait);
         return newTrait;
     }
-    public List<Trait> getTraits(List<String> traitsNames) {
-        List<Trait> traits = new ArrayList<>();
+    public Set<Trait> getTraits(Set<String> traitsNames) {
+        Set<Trait> traits = new HashSet<>();
         for (String traitsName : traitsNames) {
             Trait trait = getTraitByName(traitsName).orElse(null);
             if (trait != null) {

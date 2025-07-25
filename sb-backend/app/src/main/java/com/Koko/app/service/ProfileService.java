@@ -8,7 +8,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class ProfileService {
@@ -27,8 +29,8 @@ public class ProfileService {
         }
         return profile;
     }
-    public List<Profile> getProfiles(List<String> profileIDs) {
-        List<Profile> profiles = new ArrayList<>();
+    public Set<Profile> getProfiles(Set<String> profileIDs) {
+        Set<Profile> profiles = new HashSet<>();
         for (String traitsName : profileIDs) {
             Profile profile = getProfile(Integer.parseInt(traitsName));
             profiles.add(profile);

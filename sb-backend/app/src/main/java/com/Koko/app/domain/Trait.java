@@ -18,7 +18,7 @@ public class Trait {
 
     @JsonBackReference
     @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE},mappedBy = "traits")
-    private List<Profile> profiles;
+    private Set<Profile> profiles;
 
     public Long getId() {
         return id;
@@ -36,11 +36,11 @@ public class Trait {
         this.traitName = traitName;
     }
 
-    public List<Profile> getProfiles() {
+    public Set<Profile> getProfiles() {
         return profiles;
     }
 
-    public void setProfiles(List<Profile> profiles) {
+    public void setProfiles(Set<Profile> profiles) {
         this.profiles = profiles;
     }
 }

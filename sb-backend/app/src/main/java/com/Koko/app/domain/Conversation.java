@@ -5,7 +5,6 @@ import jakarta.persistence.*;
 
 import java.sql.Date;
 import java.sql.Timestamp;
-import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -22,12 +21,14 @@ public class Conversation {
 
     @JsonManagedReference
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    private List<Profile> users;
+    @JoinTable(name = "conversation_users", joinColumns = {@JoinColumn(name = "conversations_id")}, inverseJoinColumns = {@JoinColumn(name = "users_id")},
+            uniqueConstraints = {@UniqueConstraint(columnNames = {"conversations_id", "users_id"})})
+    private Set<Profile> users;
 
     @JsonManagedReference
     @OneToMany(mappedBy = "conversation", orphanRemoval = true)
     @OrderBy("timestamp ASC")
-    private List<Message> messages;
+    private Set<Message> messages;
 
     public long getId() {
         return id;
@@ -49,19 +50,19 @@ public class Conversation {
         this.messageCount = messageCount + 1;
     }
 
-    public List<Profile> getUsers() {
+    public Set<Profile> getUsers() {
         return users;
     }
 
-    public void setUsers(List<Profile> users) {
+    public void setUsers(Set<Profile> users) {
         this.users = users;
     }
 
-    public List<Message> getMessages() {
+    public Set<Message> getMessages() {
         return messages;
     }
 
-    public void setMessages(List<Message> messages) {
+    public void setMessages(Set<Message> messages) {
         this.messages = messages;
     }
     public void addMessage(Message message) {

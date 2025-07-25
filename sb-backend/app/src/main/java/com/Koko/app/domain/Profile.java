@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -17,8 +18,9 @@ public class Profile {
 
     @JsonManagedReference
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinTable(name = "profile_traits", joinColumns = {@JoinColumn(name = "profiles_id")}, inverseJoinColumns = {@JoinColumn(name = "traits_id")})
-    private List<Trait> traits = new ArrayList<>();
+    @JoinTable(name = "profile_traits", joinColumns = {@JoinColumn(name = "profiles_id")}, inverseJoinColumns = {@JoinColumn(name = "traits_id")},
+            uniqueConstraints = {@UniqueConstraint(columnNames = {"profiles_id", "traits_id"})})
+    private Set<Trait> traits = new HashSet<>();
 
     @JsonBackReference
     @ManyToMany(mappedBy = "users", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
@@ -39,17 +41,17 @@ public class Profile {
         this.id = id;
     }
 
-    public List<Trait> getTraits() {
+    public Set<Trait> getTraits() {
         return traits;
     }
 
-    public void setTraits(List<Trait> traits) {
+    public void setTraits(Set<Trait> traits) {
         this.traits = traits;
     }
     public void addTrait(Trait trait) {
         this.traits.add(trait);
     }
-    public void addTraits(List<Trait> traits) {
+    public void addTraits(Set<Trait> traits) {
         this.traits.addAll(traits);
     }
 

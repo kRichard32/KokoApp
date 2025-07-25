@@ -5,11 +5,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
+import java.util.Set;
 
 public class jsonTools {
-    public static List<String> getStrings(String jsonString) {
+    public static Set<String> getStrings(String jsonString) {
         ObjectMapper mapper = new ObjectMapper();
-        List<String> result;
+        Set<String> result;
         try{
             result = mapper.readValue(jsonString, new TypeReference<>(){});
         } catch (JsonProcessingException e) {
