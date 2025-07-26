@@ -8,7 +8,7 @@ import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
 import { useAuth } from "@/context/AuthContext"
 
-const serverUrl = "http://10.0.2.2:8080"
+const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL;
 
 export const OAuthLoginScreen: FC = function OAuthLoginScreen() {
   const { themed } = useAppTheme()

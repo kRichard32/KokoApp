@@ -18,7 +18,7 @@ import type { AppStackScreenProps } from "@/navigators/AppNavigator"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
-const serverUrl = "http://10.0.2.2:8080"
+const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL;
 
 // 数据类型定义
 interface Person {

@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext"
 import { navigationRef } from "@/navigators/navigationUtilities"
 import { CommonActions } from "@react-navigation/native"
 
-const serverUrl = "http://10.0.2.2:8080"
+const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL;
 
 export const OAuthHandler = () => {
   const { checkLoginState, setAuthToken } = useAuth()
