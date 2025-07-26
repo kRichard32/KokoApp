@@ -2,6 +2,7 @@ import React, { useState, useImperativeHandle, forwardRef } from 'react';
 import { View } from 'react-native';
 import { Audio } from 'expo-av';
 import axios from 'axios';
+const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL;
 
 export type VoiceRecorderRef = {
   start: () => void;
@@ -122,7 +123,7 @@ const VoiceRecorder = forwardRef<VoiceRecorderRef, VoiceRecorderProps>(({ conver
     
     console.log('VoiceRecorder: Sending audio to server...');
     try {
-      const response = await axios.post('http://10.0.2.2:8080/api/messages/send', formData, {
+      const response = await axios.post(`${serverUrl}/api/messages/send`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
