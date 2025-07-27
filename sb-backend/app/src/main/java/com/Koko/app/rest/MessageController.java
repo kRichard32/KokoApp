@@ -1,8 +1,12 @@
 package com.Koko.app.rest;
 
 
+import java.io.IOException;
 import java.util.*;
 
+import com.Koko.app.service.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -23,15 +27,12 @@ import com.Koko.app.dataTransfer.MessageTransfer;
 import com.Koko.app.domain.Conversation;
 import com.Koko.app.domain.Message;
 import com.Koko.app.domain.Profile;
-import com.Koko.app.service.ConversationService;
-import com.Koko.app.service.GoogleDriveFileService;
-import com.Koko.app.service.JwtService;
-import com.Koko.app.service.MessageService;
-import com.Koko.app.service.ProfileService;
 
 @RestController
 @RequestMapping("/api/messages")
 public class MessageController {
+    private static final Logger logger = LoggerFactory.getLogger(MessageController.class);
+
     @Autowired
     private MessageService messageService;
 
@@ -46,6 +47,9 @@ public class MessageController {
 
     @Autowired
     private JwtService jwtService;
+
+    @Autowired
+    private TranscriptionService transcriptionService;
 
     @ResponseStatus(value = HttpStatus.OK)
 
@@ -82,11 +86,20 @@ public class MessageController {
         Conversation conversation = conversationService.getConversationByConversationID(profile.getId(),
                 conversationId);
         String audioPath = googleDriveFileService.do_POST(audio);
+        String transcription = "";
+        try{
+            transcription = transcriptionService.transcribe(audio.getBytes());
+        }
+        catch(IOException e){
+            logger.error(e.getMessage());
+        }
+
         Message message = new Message();
         message.setConversation(conversation);
         message.setAudioFileId(audioPath);
         message.setSender(profile);
         message.setTimestampToCurrentTime();
+        message.setAudioTranscription(transcription);
         conversation.setTimestampToCurrentTime();
         conversation.incrementMessageCount();
         conversation.addMessage(message);
@@ -95,6 +108,7 @@ public class MessageController {
         map.put("id", "");
         return map;
     }
+
     @CrossOrigin()
     @PostMapping("/sendText")
     public Map<String, String> sendText(@CookieValue(value = "token", required = false) String token,
