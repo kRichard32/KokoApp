@@ -111,9 +111,9 @@ export const OAuthHandler = () => {
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
                 console.log('Axios authorization header set')
               } else {
-                console.log('No token found in response, using session-based authentication')
-                console.log('Available keys in response:', Object.keys(res.data))
-                setAuthToken("authenticated") // Fallback for session-based auth
+                console.error('No idToken found in response. Authentication failed.')
+                navigateToInitialScreen()
+                return
               }
               
               // Check login state after successful token exchange to validate token and navigate

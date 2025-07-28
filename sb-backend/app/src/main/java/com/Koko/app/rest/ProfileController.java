@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.Koko.app.dataTransfer.ProfileTransfer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -19,7 +20,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.Koko.app.dataTransfer.ProfileTransfer;
 import com.Koko.app.domain.Profile;
 import com.Koko.app.service.GoogleDriveFileService;
 import com.Koko.app.service.JwtService;
@@ -62,17 +62,17 @@ public class ProfileController {
         return map;
     }
 
-    @PostMapping("/addTrait")
-    public Map<String, String> addTrait(@RequestBody ProfileTransfer profileData) {
-        Set<String> traits = profileData.getTraits();
-        Profile profile = profileService.getProfile(profileData.getId());
-        HashMap<String, String> map = new HashMap<>();
-        profile.addTraits(traitService.getTraits(traits));
-        profileService.save(profile);
-
-        map.put("id", profile.getId().toString());
-        return map;
-    }
+//    @PostMapping("/addTrait")
+//    public Map<String, String> addTrait(@RequestBody ProfileTransfer profileData) {
+//        Set<String> traits = profileData.getTraits();
+//        Profile profile = profileService.getProfile(profileData.getId());
+//        HashMap<String, String> map = new HashMap<>();
+//        profile.addTraits(traitService.getTraits(traits));
+//        profileService.save(profile);
+//
+//        map.put("id", profile.getId().toString());
+//        return map;
+//    }
     @PostMapping("/addProfilePicture")
     public Map<String, String> addTrait(@CookieValue(value = "token", required = false) String token, @RequestPart MultipartFile profilePicture) {
         Map<String, Object> userInfo = jwtService.decodeIdToken(token);

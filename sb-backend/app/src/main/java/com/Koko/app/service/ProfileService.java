@@ -7,7 +7,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -20,7 +19,7 @@ public class ProfileService {
     public void save(Profile profile) {
         profileRepository.save(profile);
     }
-    public Profile getProfile(int id) {
+    public Profile getProfile(long id) {
         Profile profile = profileRepository.findById(id).orElse(null);
         if (profile == null) {
             throw new ResponseStatusException(
