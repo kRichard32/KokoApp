@@ -240,7 +240,7 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
         // 转换新消息格式
         const newMessages = conversation.messages.map((msg: any) => ({
           id: msg.id.toString(),
-          text: msg.audioTranscription || msg.content,
+          text: msg.audioTranscription,
           audioFileId: msg.audioFileId,
           timestamp: new Date(msg.timestamp),
           isFromUser: msg.sender.id === currentUser,
@@ -633,113 +633,97 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
   }
 
   const renderMessage: ListRenderItem<ChatMessage> = ({ item }) => (
+  <View style={[ 
+    $messageContainer, 
+    item.isFromUser ? $userMessageContainer : $doctorMessageContainer 
+  ]}> 
+    {!item.isFromUser && ( 
+      <Image 
+        source={
+          contact?.avatar && typeof contact.avatar === 'string'
+            ? { uri: contact.avatar }
+            : require("../../assets/images/avatar-placeholder.jpg")
+        }
+        style={$messageAvatar} 
+        defaultSource={require("../../assets/images/avatar-placeholder.jpg")} 
+      /> 
+    )} 
     <View style={[ 
-      $messageContainer, 
-      item.isFromUser ? $userMessageContainer : $doctorMessageContainer 
-    ]}> 
-      {!item.isFromUser && ( 
-        <Image 
-          source={
-            contact?.avatar && typeof contact.avatar === 'string'
-              ? { uri: contact.avatar }
-              : require("../../assets/images/avatar-placeholder.jpg")
-          }
-          style={$messageAvatar} 
-          defaultSource={require("../../assets/images/avatar-placeholder.jpg")} 
-        /> 
-      )} 
-      <View style={[ 
-        $messageBubble, 
-        item.isFromUser ? $userMessageBubble : $doctorMessageBubble 
-      ]}>
-        {item.messageType === 'voice' ? (
-          // 语音消息
-          <View style={$voiceMessageContainer}>
-            <Pressable
-              style={[$playButton, !item.audioFileId && $disabledButton]}
-              onPress={() => toggleVoicePlayback(item.id, item.audioFileId)}
-              disabled={!item.audioFileId || audioLoadingStates[item.id]}
-              accessible
-              accessibilityRole="button"
-              accessibilityLabel={playingMessageId === item.id ? "Stop voice message" : "Play voice message"}
-            >
-              <Text style={[
-                $playButtonText,
-                item.isFromUser ? $userPlayButtonText : $doctorPlayButtonText
-              ]}>
-                {!item.audioFileId ? "❌" : (audioLoadingStates[item.id] ? "⏳" : (playingMessageId === item.id ? "⏸️" : "▶️"))}
-              </Text>
-            </Pressable>
-            
-            <View style={$voiceInfo}>
-              <View style={$waveformContainer}>
-                {/* 简单的波形可视化 */}
-                {Array.from({ length: 8 }).map((_, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      $waveformBar,
-                      item.isFromUser ? $userWaveformBar : $doctorWaveformBar,
-                      playingMessageId === item.id && $activeWaveformBar
-                    ]}
-                  />
-                ))}
-              </View>
-              <Text style={[
-                $voiceDuration,
-                item.isFromUser ? $userVoiceDuration : $doctorVoiceDuration
-              ]}>
-                {formatDuration(item.audioDuration || 0)}
-              </Text>
-            </View>
-
-            {/* 转文字按钮 */}
-            <Pressable
-              style={$transcriptionButton}
-              onPress={() => toggleTranscription(item.id)}
-              accessible
-              accessibilityRole="button"
-              accessibilityLabel="Toggle transcription"
-            >
-              <Text style={[
-                $transcriptionButtonText,
-                item.isFromUser ? $userTranscriptionButtonText : $doctorTranscriptionButtonText
-              ]}>
-                Aa
-              </Text>
-            </Pressable>
-          </View>
-        ) : (
-          // 文字消息
-          <Text style={[
-            $messageText,
-            item.isFromUser ? $userMessageText : $doctorMessageText
-          ]}>
-            {item.text}
-          </Text>
-        )}
-
-        {/* 显示转文字结果 */}
-        {item.messageType === 'voice' && showTranscription[item.id] && item.transcription && (
-          <View style={$transcriptionContainer}>
+      $messageBubble, 
+      item.isFromUser ? $userMessageBubble : $doctorMessageBubble 
+    ]}>
+      {item.audioFileId ? (
+        // Voice message with audio player
+        <View style={$voiceMessageContainer}>
+          <Pressable
+            style={[$playButton, $disabledButton]}
+            onPress={() => toggleVoicePlayback(item.id, item.audioFileId)}
+            disabled={audioLoadingStates[item.id]}
+            accessible
+            accessibilityRole="button"
+            accessibilityLabel={playingMessageId === item.id ? "Stop voice message" : "Play voice message"}
+          >
             <Text style={[
-              $transcriptionText,
-              item.isFromUser ? $userTranscriptionText : $doctorTranscriptionText
+              $playButtonText,
+              item.isFromUser ? $userPlayButtonText : $doctorPlayButtonText
             ]}>
-              "{item.transcription}"
+              {audioLoadingStates[item.id] ? "⏳" : (playingMessageId === item.id ? "⏸️" : "▶️")}
             </Text>
+          </Pressable>
+          
+          <View style={$voiceInfo}>
+            <View style={$waveformContainer}>
+              {/* Simple waveform visualization */}
+              {Array.from({ length: 8 }).map((_, index) => (
+                <View
+                  key={index}
+                  style={[
+                    $waveformBar,
+                    item.isFromUser ? $userWaveformBar : $doctorWaveformBar,
+                    playingMessageId === item.id && $activeWaveformBar
+                  ]}
+                />
+              ))}
+            </View>
+            {/* <Text style={[
+              $voiceDuration,
+              item.isFromUser ? $userVoiceDuration : $doctorVoiceDuration
+            ]}>
+              {formatDuration(item.audioDuration || 0)}
+            </Text> */}
           </View>
-        )}
-
+        </View>
+      ) : item.text ? (
+        // Text-only message
         <Text style={[
-          $messageTime,
-          item.isFromUser ? $userMessageTime : $doctorMessageTime
+          $messageText,
+          item.isFromUser ? $userMessageText : $doctorMessageText
         ]}>
-          {formatTime(item.timestamp)}
+          {item.text}
         </Text>
-      </View>
+      ) : null}
+
+      {/* Show transcription for voice messages that have both audio and text */}
+      {item.audioFileId && (item.text || item.transcription) && (
+        <View style={$transcriptionContainer}>
+          <Text style={[
+            $transcriptionText,
+            item.isFromUser ? $userTranscriptionText : $doctorTranscriptionText
+          ]}>
+            "{item.text || item.transcription}"
+          </Text>
+        </View>
+      )}
+
+      <Text style={[
+        $messageTime,
+        item.isFromUser ? $userMessageTime : $doctorMessageTime
+      ]}>
+        {formatTime(item.timestamp)}
+      </Text>
     </View>
-  )
+  </View>
+)
 
   return (
     <Screen

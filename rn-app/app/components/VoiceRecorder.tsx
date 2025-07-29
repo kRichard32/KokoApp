@@ -63,15 +63,15 @@ const VoiceRecorder = forwardRef<VoiceRecorderRef, VoiceRecorderProps>(({ conver
 
       const { recording } = await Audio.Recording.createAsync({
         android: {
-        extension: '.m4a',
-        outputFormat: 2, // MPEG_4
-        audioEncoder: 3, // AAC
+        extension: '.wav',
+        outputFormat: 1, // PCM_16BIT
+        audioEncoder: 1, // PCM_16BIT
         sampleRate: 44100,
-        numberOfChannels: 2,
+        numberOfChannels: 1,
         bitRate: 128000,
         },
         ios: {
-            extension: '.caf',
+            extension: '.wav',
             audioQuality: 96, // HIGH
             sampleRate: 44100,
             numberOfChannels: 1,
@@ -81,7 +81,7 @@ const VoiceRecorder = forwardRef<VoiceRecorderRef, VoiceRecorderProps>(({ conver
             linearPCMIsFloat: false,
         },
         web: {
-            mimeType: 'audio/webm',
+            mimeType: 'audio/wav',
             bitsPerSecond: 128000,
         },
       });
