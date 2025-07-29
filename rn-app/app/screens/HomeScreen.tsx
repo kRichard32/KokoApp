@@ -18,6 +18,7 @@ import axios from "axios"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
+import { VoiceCommandButton } from "@/components/VoiceCommandButton"
 import type { AppStackScreenProps } from "@/navigators/AppNavigator"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -151,45 +152,9 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
 
   /** ====== 语音处理函数 ====== */
   const mockVoiceRecognition = () => {
-    const sampleTexts = [
-      "I want to talk to Mary",
-      // "Show me today's reminders", 
-      // "Find my friends",
-      // "Open chat messages",
-      // "What events are coming up",
-      // "Help me with medication",
-      // "Call my family",
-      // "Schedule a doctor appointment"
-    ]
-    
-    const randomText = sampleTexts[Math.floor(Math.random() * sampleTexts.length)]
-    
-    // 模拟语音识别处理时间
-    setTimeout(() => {
-      setRecognizedText(randomText)
-      setIsProcessing(false)
-      
-      // 文字淡入动画，像Siri一样从下往上滑入
-      Animated.parallel([
-        Animated.timing(textOpacityAnim, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1.05, // 轻微放大
-          useNativeDriver: true,
-          tension: 100,
-          friction: 8,
-        })
-      ]).start()
-      
-      // AI智能助理行为：处理语音指令
-      setTimeout(() => {
-        handleVoiceCommand(randomText)
-      }, 1500) // 显示文字1.5秒后执行指令
-      
-    }, 800 + Math.random() * 1200) // 稍微缩短处理时间
+    // This function now just starts the recording animation
+    // The actual result will be shown when stopRecording is called
+    console.log("Recording started - waiting for user to stop recording")
   }
 
   /** ====== AI智能助理指令处理 ====== */
@@ -295,7 +260,7 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
     if (!isRecording) return // 防止重复触发
     
     setIsRecording(false)
-    setIsProcessing(false)
+    // Keep isProcessing true until we show the result
     
     // 停止所有动画并重置按钮大小
     pulseAnim.stopAnimation()
@@ -318,6 +283,43 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
         useNativeDriver: true,
       }),
     ]).start()
+
+    // Simulate processing and then show result
+    const sampleTexts = [
+      "I want to talk to Mary",
+      // "Show me today's reminders", 
+      // "Find my friends",
+      // "Open chat messages",
+    ]
+    
+    const randomText = sampleTexts[Math.floor(Math.random() * sampleTexts.length)]
+    
+    // Short delay to simulate processing, then show "I heard" result
+    setTimeout(() => {
+      setRecognizedText(randomText)
+      setIsProcessing(false)
+      
+      // 文字淡入动画，像Siri一样从下往上滑入
+      Animated.parallel([
+        Animated.timing(textOpacityAnim, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1.05, // 轻微放大
+          useNativeDriver: true,
+          tension: 100,
+          friction: 8,
+        })
+      ]).start()
+      
+      // AI智能助理行为：处理语音指令
+      setTimeout(() => {
+        handleVoiceCommand(randomText)
+      }, 1500) // 显示文字1.5秒后执行指令
+      
+    }, 500) // Short processing delay
 
     console.log("Recording stopped")
   }
@@ -398,9 +400,8 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
         <Pressable
           accessible
           accessibilityRole="button"
-          accessibilityLabel={isRecording ? "Stop recording" : "Voice command"}
-          onPressIn={startRecording}
-          onPressOut={stopRecording}
+          accessibilityLabel={isRecording ? "Tap to stop recording" : "Tap to start voice command"}
+          onPress={isRecording ? stopRecording : startRecording}
           style={[
             $voiceButton,
             { 
@@ -413,7 +414,7 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
             {isRecording ? "🔴" : "🎤"}
           </Text>
           <Text preset="formLabel" size="lg" weight="medium" style={$voiceLabel}>
-            {isRecording ? "Listening..." : "Hold to speak"}
+            {isRecording ? "Tap to stop" : "Tap to speak"}
           </Text>
         </Pressable>
       </Animated.View>
@@ -434,17 +435,17 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
       )}
 
       {/* 录制时的背景遮罩 */}
-      {isRecording && (
+      {(isRecording || isProcessing) && (
         <View
           pointerEvents="none"
           style={$recordingOverlay}
         >
           {/* Siri风格的语音识别界面 */}
           <View style={$siriContainer}>
-            {isProcessing ? (
+            {isRecording ? (
               <View style={$siriProcessingContainer}>
                 <View style={$siriWaveformContainer}>
-                    <Text style={$siriIcon}>🗣️</Text>
+                    <Text style={$siriIcon}>🎤</Text>
                   <View style={$siriWaveform}>
                     <View style={[$siriWaveBar, { height: 20 }]} />
                     <View style={[$siriWaveBar, { height: 35 }]} />
@@ -454,6 +455,20 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
                   </View>
                 </View>
                 <Text style={$siriProcessingText}>Listening...</Text>
+              </View>
+            ) : isProcessing ? (
+              <View style={$siriProcessingContainer}>
+                <View style={$siriWaveformContainer}>
+                    <Text style={$siriIcon}>🗣️</Text>
+                  <View style={$siriWaveform}>
+                    <View style={[$siriWaveBar, { height: 15 }]} />
+                    <View style={[$siriWaveBar, { height: 25 }]} />
+                    <View style={[$siriWaveBar, { height: 10 }]} />
+                    <View style={[$siriWaveBar, { height: 20 }]} />
+                    <View style={[$siriWaveBar, { height: 18 }]} />
+                  </View>
+                </View>
+                <Text style={$siriProcessingText}>Processing...</Text>
               </View>
             ) : (
               recognizedText && (
