@@ -201,7 +201,6 @@ export const MatchScreen: FC<MatchScreenProps> = ({ navigation, route }) => {
   const handleMessage = () => {
     navigation.navigate("ChatDetail", {
       conversationId: currentUser.id,
-      conversationName: currentUser.name
     })
   }
 

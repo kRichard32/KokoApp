@@ -164,7 +164,6 @@ export const PeopleScreen: FC<PeopleScreenProps> = ({ navigation }) => {
         // 导航到聊天页面
         navigation.navigate("ChatDetail", {
           conversationId: response.data.id,
-          conversationName: person.name,
         })
       } else {
         console.error('Invalid response from create conversation API')

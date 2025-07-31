@@ -10,8 +10,6 @@ import {
   Platform,
   Image,
   ImageStyle,
-  Animated,
-  StyleSheet,
 } from "react-native"
 import axios from "axios"
 
@@ -19,6 +17,7 @@ import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
 import { VoiceCommandButton } from "@/components/VoiceCommandButton"
+import { VoiceRecordingButton } from "@/components/VoiceRecordingButton"
 import type { AppStackScreenProps } from "@/navigators/AppNavigator"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -33,22 +32,9 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
     theme: { colors, spacing },
   } = useAppTheme()
 
-  // 语音录制状态
-  const [isRecording, setIsRecording] = useState(false)
-  const [recognizedText, setRecognizedText] = useState("")
-  const [isProcessing, setIsProcessing] = useState(false)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [userName, setUserName] = useState("Agnes Freeman") // Default name
   const [profilePictureUri, setProfilePictureUri] = useState<string | null>(null)
-  const scaleAnim = useState(new Animated.Value(1))[0]
-  const pulseAnim = useState(new Animated.Value(1))[0]
-  const textOpacityAnim = useState(new Animated.Value(0))[0]
-  // Siri波形动画
-  const waveAnim1 = useState(new Animated.Value(0.5))[0]
-  const waveAnim2 = useState(new Animated.Value(0.7))[0]
-  const waveAnim3 = useState(new Animated.Value(0.3))[0]
-  const waveAnim4 = useState(new Animated.Value(0.8))[0]
-  const waveAnim5 = useState(new Animated.Value(0.6))[0]
 
   // Fetch user profile on component mount
   useEffect(() => {
@@ -150,38 +136,14 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
     )
   }
 
-  /** ====== 语音处理函数 ====== */
-  const mockVoiceRecognition = () => {
-    // This function now just starts the recording animation
-    // The actual result will be shown when stopRecording is called
-    console.log("Recording started - waiting for user to stop recording")
-  }
-
   /** ====== AI智能助理指令处理 ====== */
   const handleVoiceCommand = (command: string) => {
     const lowerCommand = command.toLowerCase()
     
     if (lowerCommand.includes("talk to mary") || lowerCommand.includes("mary")) {
-      // 淡出当前界面并跳转到Mary的聊天
-      Animated.parallel([
-        Animated.timing(textOpacityAnim, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          useNativeDriver: true,
-          tension: 100,
-          friction: 8,
-        })
-      ]).start(() => {
-        setRecognizedText("")
-        // 跳转到Mary Floyd的聊天界面
-        navigation.navigate("ChatDetail", {
-          conversationId: "mary-floyd",
-          conversationName: "Mary Floyd"
-        })
+      // 跳转到Mary Floyd的聊天界面
+      navigation.navigate("ChatDetail", {
+        conversationId: "mary-floyd",
       })
     }
     // 可以在这里添加更多语音指令处理
@@ -191,137 +153,6 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
     // else if (lowerCommand.includes("friends")) {
     //   navigation.navigate("Match")
     // }
-  }
-
-  const startRecording = () => {
-    if (isRecording) return // 防止重复触发
-    
-    setIsRecording(true)
-    setIsProcessing(true)
-    setRecognizedText("")
-    textOpacityAnim.setValue(0)
-    
-    // 按钮放大动画
-    Animated.spring(scaleAnim, {
-      toValue: 1.2,
-      useNativeDriver: true,
-      tension: 150,
-      friction: 8,
-    }).start()
-
-    // 脉冲动画
-    const pulseAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ])
-    )
-    pulseAnimation.start()
-
-    // Siri波形动画
-    const createWaveAnimation = (animValue: Animated.Value, delay: number) => {
-      return Animated.loop(
-        Animated.sequence([
-          Animated.timing(animValue, {
-            toValue: 1,
-            duration: 600 + delay,
-            useNativeDriver: false,
-          }),
-          Animated.timing(animValue, {
-            toValue: 0.2,
-            duration: 600 + delay,
-            useNativeDriver: false,
-          }),
-        ])
-      );
-    }
-
-    createWaveAnimation(waveAnim1, 0).start()
-    createWaveAnimation(waveAnim2, 100).start()
-    createWaveAnimation(waveAnim3, 200).start()
-    createWaveAnimation(waveAnim4, 50).start()
-    createWaveAnimation(waveAnim5, 150).start()
-
-    // 开始模拟语音识别
-    mockVoiceRecognition()
-
-    console.log("Recording started - implement voice recognition here")
-  }
-
-  const stopRecording = () => {
-    if (!isRecording) return // 防止重复触发
-    
-    setIsRecording(false)
-    // Keep isProcessing true until we show the result
-    
-    // 停止所有动画并重置按钮大小
-    pulseAnim.stopAnimation()
-    waveAnim1.stopAnimation()
-    waveAnim2.stopAnimation()
-    waveAnim3.stopAnimation()
-    waveAnim4.stopAnimation()
-    waveAnim5.stopAnimation()
-    
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 150,
-        friction: 8,
-      }),
-      Animated.timing(pulseAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start()
-
-    // Simulate processing and then show result
-    const sampleTexts = [
-      "I want to talk to Mary",
-      // "Show me today's reminders", 
-      // "Find my friends",
-      // "Open chat messages",
-    ]
-    
-    const randomText = sampleTexts[Math.floor(Math.random() * sampleTexts.length)]
-    
-    // Short delay to simulate processing, then show "I heard" result
-    setTimeout(() => {
-      setRecognizedText(randomText)
-      setIsProcessing(false)
-      
-      // 文字淡入动画，像Siri一样从下往上滑入
-      Animated.parallel([
-        Animated.timing(textOpacityAnim, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1.05, // 轻微放大
-          useNativeDriver: true,
-          tension: 100,
-          friction: 8,
-        })
-      ]).start()
-      
-      // AI智能助理行为：处理语音指令
-      setTimeout(() => {
-        handleVoiceCommand(randomText)
-      }, 1500) // 显示文字1.5秒后执行指令
-      
-    }, 500) // Short processing delay
-
-    console.log("Recording stopped")
   }
 
   return (
@@ -388,116 +219,7 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
       </View>
 
       {/* 语音按钮 */}
-      <Animated.View
-        style={[
-          { 
-            transform: [{ scale: Animated.multiply(scaleAnim, pulseAnim) }],
-            zIndex: 1000, // 确保按钮在遮罩之上
-            elevation: 1000, // Android elevation
-          }
-        ]}
-      >
-        <Pressable
-          accessible
-          accessibilityRole="button"
-          accessibilityLabel={isRecording ? "Tap to stop recording" : "Tap to start voice command"}
-          onPress={isRecording ? stopRecording : startRecording}
-          style={[
-            $voiceButton,
-            { 
-              backgroundColor: isRecording ? "#FFE4E1" : colors.palette.accent100, 
-              borderColor: isRecording ? "#FF6B6B" : colors.palette.accent500,
-            },
-          ]}
-        >
-          <Text size="xxl" style={$voiceIcon}>
-            {isRecording ? "🔴" : "🎤"}
-          </Text>
-          <Text preset="formLabel" size="lg" weight="medium" style={$voiceLabel}>
-            {isRecording ? "Tap to stop" : "Tap to speak"}
-          </Text>
-        </Pressable>
-      </Animated.View>
-
-      {/* 录制时的取消按钮 */}
-      {isRecording && (
-        <Pressable
-          style={$cancelButton}
-          onPress={stopRecording}
-          accessible
-          accessibilityRole="button"
-          accessibilityLabel="Cancel recording"
-        >
-          <Text preset="formLabel" size="md" style={$cancelButtonText}>
-            Cancel
-          </Text>
-        </Pressable>
-      )}
-
-      {/* 录制时的背景遮罩 */}
-      {(isRecording || isProcessing) && (
-        <View
-          pointerEvents="none"
-          style={$recordingOverlay}
-        >
-          {/* Siri风格的语音识别界面 */}
-          <View style={$siriContainer}>
-            {isRecording ? (
-              <View style={$siriProcessingContainer}>
-                <View style={$siriWaveformContainer}>
-                    <Text style={$siriIcon}>🎤</Text>
-                  <View style={$siriWaveform}>
-                    <View style={[$siriWaveBar, { height: 20 }]} />
-                    <View style={[$siriWaveBar, { height: 35 }]} />
-                    <View style={[$siriWaveBar, { height: 15 }]} />
-                    <View style={[$siriWaveBar, { height: 28 }]} />
-                    <View style={[$siriWaveBar, { height: 22 }]} />
-                  </View>
-                </View>
-                <Text style={$siriProcessingText}>Listening...</Text>
-              </View>
-            ) : isProcessing ? (
-              <View style={$siriProcessingContainer}>
-                <View style={$siriWaveformContainer}>
-                    <Text style={$siriIcon}>🗣️</Text>
-                  <View style={$siriWaveform}>
-                    <View style={[$siriWaveBar, { height: 15 }]} />
-                    <View style={[$siriWaveBar, { height: 25 }]} />
-                    <View style={[$siriWaveBar, { height: 10 }]} />
-                    <View style={[$siriWaveBar, { height: 20 }]} />
-                    <View style={[$siriWaveBar, { height: 18 }]} />
-                  </View>
-                </View>
-                <Text style={$siriProcessingText}>Processing...</Text>
-              </View>
-            ) : (
-              recognizedText && (
-                <Animated.View style={[
-                  $siriResultContainer,
-                  { 
-                    opacity: textOpacityAnim,
-                    transform: [{ scale: scaleAnim }]
-                  }
-                ]}>
-                  <View style={$siriResultHeader}>
-                    <Text style={$siriResultIcon}>✓</Text>
-                    <Text style={$siriResultTitle}>I heard:</Text>
-                  </View>
-                  <Text style={$siriResultText}>"{recognizedText}"</Text>
-                  <View style={$siriResultActions}>
-                    <Text style={$siriResultHint}>
-                      {recognizedText.toLowerCase().includes("mary") 
-                        ? "Opening chat with Mary..." 
-                        : "Processing your request..."
-                      }
-                    </Text>
-                  </View>
-                </Animated.View>
-              )
-            )}
-          </View>
-        </View>
-      )}
+      <VoiceRecordingButton navigation={navigation} />
 
       {/* 搜索栏；KeyboardAvoiding 让键盘不挡住输入 */}
       {/* <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -635,177 +357,6 @@ const $voicePromptExample: TextStyle = {
   color: "#6B7280",
   fontStyle: "italic",
   lineHeight: 26,
-}
-
-const $voiceButton: ViewStyle = {
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: 25,
-  paddingVertical: 16,
-  paddingHorizontal: 24,
-  marginBottom: 20,
-  borderWidth: 2,
-  shadowColor: "#000",
-  shadowOffset: {
-    width: 0,
-    height: 2,
-  },
-  shadowOpacity: 0.1,
-  shadowRadius: 4,
-  elevation: 3,
-}
-
-const $voiceIcon: TextStyle = {
-  marginRight: 12,
-  fontSize:40,
-}
-
-const $voiceLabel: TextStyle = {
-  color: "#2D5016",
-  fontSize: 24,
-}
-
-const $cancelButton: ViewStyle = {
-  alignSelf: "center",
-  backgroundColor: "#FFF",
-  borderRadius: 20,
-  paddingVertical: 12,
-  paddingHorizontal: 24,
-  marginTop: 16,
-  borderWidth: 1,
-  borderColor: "#FF6B6B",
-  shadowColor: "#000",
-  shadowOffset: {
-    width: 0,
-    height: 2,
-  },
-  shadowOpacity: 0.1,
-  shadowRadius: 4,
-  elevation: 3,
-}
-
-const $cancelButtonText: TextStyle = {
-  color: "#FF6B6B",
-  fontWeight: "600",
-}
-
-const $recordingOverlay: ViewStyle = {
-  ...StyleSheet.absoluteFillObject,
-  backgroundColor: "rgba(0, 0, 0, 0.75)", // 更深的背景，像Siri
-  zIndex: 500,
-}
-
-// Siri风格的样式
-const $siriContainer: ViewStyle = {
-  flex: 1,
-  justifyContent: "center",
-  alignItems: "center",
-  paddingHorizontal: 24,
-}
-
-const $siriProcessingContainer: ViewStyle = {
-  alignItems: "center",
-  backgroundColor: "rgba(255, 255, 255, 0.98)",
-  borderRadius: 24,
-  padding: 32,
-  minWidth: 280,
-  shadowColor: "#000",
-  shadowOffset: {
-    width: 0,
-    height: 8,
-  },
-  shadowOpacity: 0.25,
-  shadowRadius: 16,
-  elevation: 16,
-}
-
-const $siriWaveformContainer: ViewStyle = {
-  flexDirection: "row",
-  alignItems: "center",
-  marginBottom: 20,
-}
-
-const $siriIcon: TextStyle = {
-  fontSize: 24,
-  marginRight: 16,
-}
-
-const $siriWaveform: ViewStyle = {
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 4,
-}
-
-const $siriWaveBar: ViewStyle = {
-  width: 4,
-  backgroundColor: "#007AFF", // iOS蓝色
-  borderRadius: 2,
-  opacity: 0.8,
-}
-
-const $siriProcessingText: TextStyle = {
-  fontSize: 28,
-  fontWeight: "500",
-  color: "#1D1D1F",
-  textAlign: "center",
-}
-
-const $siriResultContainer: ViewStyle = {
-  backgroundColor: "rgba(255, 255, 255, 0.98)",
-  borderRadius: 28,
-  padding: 36,
-  maxWidth: "92%",
-  minWidth: 320,
-  alignItems: "center",
-  shadowColor: "#000",
-  shadowOffset: {
-    width: 0,
-    height: 12,
-  },
-  shadowOpacity: 0.3,
-  shadowRadius: 20,
-  elevation: 20,
-}
-
-const $siriResultHeader: ViewStyle = {
-  flexDirection: "row",
-  alignItems: "center",
-  marginBottom: 20,
-}
-
-const $siriResultIcon: TextStyle = {
-  fontSize: 20,
-  color: "#34C759", // iOS绿色
-  marginRight: 12,
-  fontWeight: "bold",
-}
-
-const $siriResultTitle: TextStyle = {
-  fontSize: 26,
-  fontWeight: "600",
-  color: "#8E8E93",
-}
-
-const $siriResultText: TextStyle = {
-  fontSize: 38,
-  fontWeight: "600",
-  color: "#1D1D1F",
-  textAlign: "center",
-  lineHeight: 46,
-  marginBottom: 24,
-  letterSpacing: 0.5,
-}
-
-const $siriResultActions: ViewStyle = {
-  alignItems: "center",
-}
-
-const $siriResultHint: TextStyle = {
-  fontSize: 22,
-  fontWeight: "500",
-  color: "#007AFF",
-  textAlign: "center",
 }
 
 const $searchField: ViewStyle = {

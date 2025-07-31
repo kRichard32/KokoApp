@@ -49,11 +49,9 @@ export type AppStackParamList = {
   Message: undefined
   ChatDetail: {
     conversationId: string
-    conversationName: string
   }
   VideoCall: {
     conversationId: string
-    conversationName: string
   }
   People: undefined
   Match: {

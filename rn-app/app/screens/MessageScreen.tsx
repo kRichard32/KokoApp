@@ -250,7 +250,7 @@ export const MessageScreen: FC<MessageScreenProps> = ({ navigation }) => {
 
   const openChat = (conversationId: string, conversationName: string) => {
     // 导航到聊天详情页面
-    navigation.navigate("ChatDetail", { conversationId, conversationName })
+    navigation.navigate("ChatDetail", { conversationId })
     console.log(`Opening chat with ${conversationName}`)
   }
 

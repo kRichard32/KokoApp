@@ -57,7 +57,7 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
   } = useAppTheme()
 
   // 从路由参数获取联系人信息
-  const { conversationId, conversationName } = route.params
+  const { conversationId } = route.params
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputText, setInputText] = useState("")
@@ -146,7 +146,27 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
       const conversationData = response.data;
       const currentUser = conversationData.currentUser;
       const conversation = conversationData.conversation;
+      var conversationName = "Unknown Conversation";
       console.log('Conversation data:', conversationData)
+      const getUserName = (user: any): string => {
+          if (typeof user === 'string') return user;
+          if (user && typeof user.name === 'string') return user.name;
+          return 'Unknown User';
+        }
+
+        if (conversation.users && Array.isArray(conversation.users) && conversation.users.length > 0) {
+          const otherUsers = conversation.users.filter((user: any) => {
+            const userId = typeof user === 'string' ? user : user.id;
+            return userId !== currentUser;
+          });
+          if (otherUsers.length === 1) {
+            conversationName = (getUserName(otherUsers[0]));
+          } else {
+            conversationName = (otherUsers.map(getUserName).join(', '));
+          }
+        }
+        
+      console.log('Conversation name:', conversationName)
       // 设置联系人信息
       if (conversation) {
         const apiContact: Contact = {
@@ -187,7 +207,7 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
       // 如果 API 调用失败，使用模拟数据作为回退
       const mockContact: Contact = {
         id: conversationId,
-        name: conversationName,
+        name: "Mary Floyd",
         avatar: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=100&h=100&fit=crop&crop=face",
         isOnline: true,
         specialty: "Cardiologist",
@@ -600,7 +620,7 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
   // 视频/语音通话功能
   const startVideoCall = () => {
     // 导航到视频通话界面
-    navigation.navigate('VideoCall', { conversationId, conversationName })
+    navigation.navigate('VideoCall', { conversationId })
   }
 
   const startVoiceCall = () => {
