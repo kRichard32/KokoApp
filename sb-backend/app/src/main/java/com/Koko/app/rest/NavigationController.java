@@ -73,7 +73,7 @@ public class NavigationController {
                 errorMap.put("error", "Invalid authentication token");
                 return errorMap;
             }
-
+            Profile currentUser = profileService.getProfileByEmail((String) userInfo.get("email"));
             HashMap<String, String> map = new HashMap<>();
             String transcription = "";
 
@@ -97,7 +97,7 @@ public class NavigationController {
             else if (matchedScreen.equals("ChatScreen")){
                 List<Conversation> conversations = conversationService.getConversationsByUserID(
                         profileService.getProfileByEmail((String) userInfo.get("email")).getId());
-                long matched_conversation = findMatchingConversation(transcription, conversations);
+                long matched_conversation = findMatchingConversation(transcription, conversations, currentUser.getId());
                 if (matched_conversation != -1){
                     map.put("screen", matchedScreen);
                     map.put("match", "true");
@@ -119,7 +119,7 @@ public class NavigationController {
             return errorMap;
         }
     }
-    private long findMatchingConversation(String transcription, List<Conversation> conversations) {
+    private long findMatchingConversation(String transcription, List<Conversation> conversations, long currentUserId) {
         if (transcription == null || transcription.trim().isEmpty()) {
             return -1;
         }
@@ -132,15 +132,17 @@ public class NavigationController {
             Set<Profile> users = conversationUsers.get(i);
             int counter = 0;
             for (Profile user : users) {
-                String [] name = user.getName().split(" ");
-                if (lowercaseTranscription.contains(name[0].toLowerCase())) {
-                    counter++;
-                }
-                else if (name.length > 1 && lowercaseTranscription.contains(name[1].toLowerCase())) {
-                    counter++;
+                if (user.getId() != currentUserId){
+                    String [] name = user.getName().split(" ");
+                    if (lowercaseTranscription.contains(name[0].toLowerCase())) {
+                        counter++;
+                    }
+                    else if (name.length > 1 && lowercaseTranscription.contains(name[1].toLowerCase())) {
+                        counter++;
+                    }
                 }
             }
-            if (counter >= users.size() - 1){
+            if (counter == users.size() - 1){
                 return conversations.get(i).getId();
             }
         }
