@@ -140,7 +140,7 @@ public class NavigationController {
                     counter++;
                 }
             }
-            if (counter == users.size()){
+            if (counter >= users.size() - 1){
                 return conversations.get(i).getId();
             }
         }
