@@ -16,7 +16,6 @@ import axios from "axios"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
-import { VoiceCommandButton } from "@/components/VoiceCommandButton"
 import { VoiceRecordingButton } from "@/components/VoiceRecordingButton"
 import type { AppStackScreenProps } from "@/navigators/AppNavigator"
 import { useAppTheme } from "@/theme/context"
@@ -170,7 +169,7 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
           accessibilityLabel="Health Check-in"
           onPress={() => navigation.navigate("HealthCheck")}
         >
-          <Image
+          {/* <Image
             source={
               profilePictureUri 
                 ? { uri: profilePictureUri }
@@ -181,21 +180,21 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
               { borderColor: colors.palette.neutral300 },
             ]}
             resizeMode="cover"
-          />
+          /> */}
         </Pressable>
         {/* 文本容器 */}
         <View>
-          <Text size="xs" weight="light">
+          {/* <Text size="xs" weight="light">
             Good morning
           </Text>
-          <Text weight="medium">{userName}</Text>
+          <Text weight="medium">{userName}</Text> */}
         </View>
       </View>
 
       {/* 大标题 */}
       <Text preset="heading" style={themed($headline)}>
         What do {"\n"}
-        you <Text style={{ color: colors.tint, textDecorationLine: 'underline', fontSize: 42, fontWeight: 'bold' }}>need?</Text> 😊
+        you <Text style={{ color: colors.tint, textDecorationLine: 'underline', fontSize: 52, fontWeight: 'bold' }}>need?</Text> 😊
       </Text>
 
       {/* 4 宫格按钮 */}
@@ -340,6 +339,8 @@ const $voicePromptHeader: ViewStyle = {
 const $voicePromptIcon: TextStyle = {
   fontSize: 28,
   marginRight: 8,
+  lineHeight: 36,
+  textAlignVertical: 'center',
 }
 
 const $voicePromptTitle: TextStyle = {

@@ -351,12 +351,12 @@ const $backButton: ViewStyle = {
 }
 
 const $backIcon: TextStyle = {
-  fontSize: 24,
+  fontSize: 32, // 增大返回箭头
   color: "#666",
 }
 
 const $headerTitle: TextStyle = {
-  fontSize: 20,
+  fontSize: 28, // 增大标题字体
   fontWeight: "700",
   color: "#000",
 }
@@ -378,13 +378,13 @@ const $categoriesContent: ViewStyle = {
 const $categoryButton: ViewStyle = {
   flexDirection: "row",
   alignItems: "center",
-  paddingHorizontal: 16,
-  paddingVertical: 12,
+  paddingHorizontal: 20, // 增大内边距
+  paddingVertical: 16,   // 增大内边距
   borderRadius: 25,
   backgroundColor: "#F8F9FA",
   borderWidth: 2,
   borderColor: "transparent",
-  minWidth: 100,
+  minWidth: 120, // 增大最小宽度
 }
 
 const $categoryButtonActive: ViewStyle = {
@@ -393,12 +393,12 @@ const $categoryButtonActive: ViewStyle = {
 }
 
 const $categoryEmoji: TextStyle = {
-  fontSize: 16,
-  marginRight: 8,
+  fontSize: 20, // 增大emoji字体
+  marginRight: 10,
 }
 
 const $categoryText: TextStyle = {
-  fontSize: 14,
+  fontSize: 18, // 增大分类文字
   fontWeight: "600",
   color: "#666",
 }
@@ -441,90 +441,90 @@ const $eventImage: ImageStyle = {
 }
 
 const $eventContent: ViewStyle = {
-  padding: 16,
+  padding: 20, // 增大内边距
 }
 
 const $eventHeader: ViewStyle = {
   flexDirection: "row",
   justifyContent: "space-between",
   alignItems: "flex-start",
-  marginBottom: 12,
+  marginBottom: 16, // 增大间距
 }
 
 const $eventTitle: TextStyle = {
-  fontSize: 18,
+  fontSize: 22, // 增大字体 18->22
   fontWeight: "700",
   color: "#000",
   flex: 1,
-  marginRight: 12,
-  lineHeight: 24,
+  marginRight: 16, // 增大间距
+  lineHeight: 28, // 增大行高
 }
 
 const $difficultyBadge: ViewStyle = {
   backgroundColor: "#E8F5E8",
-  paddingHorizontal: 8,
-  paddingVertical: 4,
+  paddingHorizontal: 12, // 增大内边距
+  paddingVertical: 6,    // 增大内边距
   borderRadius: 12,
 }
 
 const $difficultyText: TextStyle = {
-  fontSize: 12,
+  fontSize: 16, // 增大字体 12->16
   fontWeight: "600",
   color: "#2E7D32",
 }
 
 const $eventDescription: TextStyle = {
-  fontSize: 14,
+  fontSize: 18, // 增大字体 14->18
   color: "#666",
-  lineHeight: 20,
-  marginBottom: 12,
+  lineHeight: 26, // 增大行高
+  marginBottom: 16, // 增大间距
 }
 
 const $tagsContainer: ViewStyle = {
   flexDirection: "row",
   flexWrap: "wrap",
-  gap: 8,
-  marginBottom: 16,
+  gap: 12, // 增大间距
+  marginBottom: 20, // 增大间距
 }
 
 const $tag: ViewStyle = {
   backgroundColor: "#F0F8FF",
-  paddingHorizontal: 10,
-  paddingVertical: 4,
+  paddingHorizontal: 14, // 增大内边距
+  paddingVertical: 6,    // 增大内边距
   borderRadius: 12,
   borderWidth: 1,
   borderColor: "#B3D9FF",
 }
 
 const $tagText: TextStyle = {
-  fontSize: 12,
+  fontSize: 16, // 增大字体 12->16
   color: "#1976D2",
   fontWeight: "500",
 }
 
 const $eventInfo: ViewStyle = {
-  marginBottom: 12,
+  marginBottom: 16, // 增大间距
 }
 
 const $timeInfo: ViewStyle = {
-  marginBottom: 8,
+  marginBottom: 12, // 增大间距
 }
 
 const $eventDate: TextStyle = {
-  fontSize: 14,
+  fontSize: 18, // 增大字体 14->18
   color: "#444",
-  marginBottom: 4,
+  marginBottom: 6, // 增大间距
   fontWeight: "500",
 }
 
 const $eventTime: TextStyle = {
-  fontSize: 14,
+  fontSize: 18, // 增大字体 14->18
   color: "#444",
   fontWeight: "500",
 }
 
 const $participantInfo: TextStyle = {
-  fontSize: 14,
+  fontSize: 18, // 增大字体 14->18
   color: "#666",
   fontWeight: "500",
 }
@@ -543,14 +543,14 @@ const $hostAvatar: ImageStyle = {
 }
 
 const $hostText: TextStyle = {
-  fontSize: 14,
+  fontSize: 18, // 增大字体 14->18
   color: "#666",
   fontWeight: "500",
 }
 
 const $joinButton: ViewStyle = {
   backgroundColor: "#4CAF50",
-  paddingVertical: 14,
+  paddingVertical: 18, // 增大内边距
   borderRadius: 12,
   alignItems: "center",
   shadowColor: "#000",
@@ -574,7 +574,7 @@ const $fullButton: ViewStyle = {
 }
 
 const $joinButtonText: TextStyle = {
-  fontSize: 16,
+  fontSize: 20, // 增大字体 16->20
   fontWeight: "700",
   color: "#FFFFFF",
 }
