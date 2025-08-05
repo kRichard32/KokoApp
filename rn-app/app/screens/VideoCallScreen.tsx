@@ -32,12 +32,64 @@ interface VideoCallScreenProps extends AppStackScreenProps<"VideoCall"> {}
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window')
 
-// WebRTC Configuration
+// WebRTC Configuration - Testing with different public TURN servers
 const WEBRTC_CONFIG = {
   iceServers: [
+    // STUN servers
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
+    {
+      
+        urls: "stun:stun.relay.metered.ca:80",
+      },
+      {
+        urls: "turn:global.relay.metered.ca:80",
+        username: "593f89e4a575173796b40ebe",
+        credential: "Z1mTOoUbVbCdPEYT",
+      },
+      {
+        urls: "turn:global.relay.metered.ca:80?transport=tcp",
+        username: "593f89e4a575173796b40ebe",
+        credential: "Z1mTOoUbVbCdPEYT",
+      },
+      {
+        urls: "turn:global.relay.metered.ca:443",
+        username: "593f89e4a575173796b40ebe",
+        credential: "Z1mTOoUbVbCdPEYT",
+      },
+      {
+        urls: "turns:global.relay.metered.ca:443?transport=tcp",
+        username: "593f89e4a575173796b40ebe",
+        credential: "Z1mTOoUbVbCdPEYT",
+      },
+    
+    // Try these alternative TURN servers
+    {
+      urls: 'turn:turn.bistri.com:80',
+      username: 'homeo',
+      credential: 'homeo'
+    },
+    {
+      urls: 'turn:turn.anyfirewall.com:443?transport=tcp',
+      username: 'webrtc',
+      credential: 'webrtc'
+    },
+    {
+      urls: 'turn:numb.viagenie.ca:3478',
+      username: 'webrtc@live.com',
+      credential: 'muazkh'
+    },
+    // Alternative working server
+    {
+      urls: 'turn:relay.backups.cz:3478',
+      username: 'webrtc',
+      credential: 'webrtc'
+    }
   ],
+  iceCandidatePoolSize: 10,
+  iceTransportPolicy: 'all' as const,
+  bundlePolicy: 'max-bundle' as const,
+  rtcpMuxPolicy: 'require' as const
 }
 
 const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL;
@@ -62,6 +114,10 @@ export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route })
   
   // Store peer connection using useRef
   const pcRef = useRef<RTCPeerConnection | null>(null)
+  // Buffer for ICE candidates that arrive before remote description is set
+  const iceCandidateBuffer = useRef<any[]>([]);
+  // Track candidate types
+  const candidateStats = useRef({ host: 0, srflx: 0, relay: 0, prflx: 0 });
 
   // UI States
   const [callDuration, setCallDuration] = useState(0)
@@ -102,7 +158,7 @@ export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route })
       console.log('SockJS URL:', sockjsUrl)
       console.log('Connecting to STOMP server with SockJS...')
       const client = new Client({
-        webSocketFactory: () => new SockJS(sockjsUrl, null, { transports: ['websocket', 'xhr-streaming', 'xhr-polling'], withCredentials: true }),
+        webSocketFactory: () => new SockJS(sockjsUrl, null, { transports: ['websocket', 'xhr-streaming', 'xhr-polling'] }),
         // Force WebSocket to include credentials in handshake
         forceBinaryWSFrames: false,
         appendMissingNULLonIncoming: true,
@@ -117,9 +173,10 @@ export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route })
           // Subscribe to call events for this conversation
           client.subscribe(`/topic/call/${conversationId}`, (message) => {
             const data = JSON.parse(message.body)
-            console.log('Received STOMP message:', data)
-            console.log('client', userId)
+            
             if (data.senderId != userId){
+              // console.log('Received STOMP message:', data)
+              // console.log('client', userId)
               switch (data.type) {
                 case "peer-joined":
                   // If initiator, create offer
@@ -127,14 +184,15 @@ export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route })
                     console.log('Creating offer as initiator')
                     createOffer(pcRef.current as RTCPeerConnection, client)
                   }
+                  break
                 case 'offer':
-                  handleOffer(data.offer)
+                  handleOffer(data.payload.offer, client)
                   break
                 case 'answer':
-                  handleAnswer(data.answer)
+                  handleAnswer(data.payload.answer)
                   break
                 case 'ice-candidate':
-                  handleIceCandidate(data.candidate)
+                  handleIceCandidate(data.payload.candidate)
                   break
                 case 'call-ended':
                   endCall()
@@ -167,51 +225,190 @@ export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route })
   }
 
   const setupWebRTC = (stream: MediaStream, client: Client) => {
-    // Create peer connection
-    const pc = new RTCPeerConnection(WEBRTC_CONFIG)
-    // Store the peer connection reference using useRef (with type assertion for compatibility)
-    pcRef.current = pc as RTCPeerConnection
+    try {
+      console.log('Setting up WebRTC with simplified configuration...')
+      console.log('WebRTC Configuration:', WEBRTC_CONFIG)
+      
+      // Create peer connection with error handling
+      const pc = new RTCPeerConnection(WEBRTC_CONFIG)
+      // Store the peer connection reference using useRef (with type assertion for compatibility)
+      pcRef.current = pc as RTCPeerConnection
 
-    // Add local stream to peer connection
-    stream.getTracks().forEach(track => {
-      pc.addTrack(track, stream);
-    });
+      console.log('PeerConnection created successfully')
+      console.log('Setting up WebRTC with local stream tracks:', stream.getTracks().length)
+      console.log('Local video tracks:', stream.getVideoTracks().length)
+      console.log('Local audio tracks:', stream.getAudioTracks().length)
 
-    pc.addEventListener('track', (event) => {
-      // Handle remote stream
-      console.log('Received remote stream')
-      setRemoteStream(event.streams[0])
-      setCallStatus('Connected')
-    });
-    
-    pc.addEventListener('icecandidate', (event) => {
-      if (event.candidate) {
-        console.log('Sending ICE candidate')
-        client.publish({
-          destination: '/app/ice-candidate',
-          body: JSON.stringify({
-            type: 'ice-candidate',
-            conversationId,
-            candidate: event.candidate,
+      // Add local stream to peer connection
+      stream.getTracks().forEach(track => {
+        console.log('Adding track to peer connection:', track.kind)
+        pc.addTrack(track, stream);
+      });
+
+      console.log('All tracks added successfully')
+
+      pc.addEventListener('track', (event) => {
+        // Handle remote stream
+        console.log('Received remote stream')
+        console.log('Remote stream tracks:', event.streams[0]?.getTracks().length)
+        console.log('Remote stream video tracks:', event.streams[0]?.getVideoTracks().length)
+        console.log('Remote stream audio tracks:', event.streams[0]?.getAudioTracks().length)
+        
+        if (event.streams && event.streams[0]) {
+          setRemoteStream(event.streams[0])
+          setCallStatus('Connected')
+        }
+      });
+      
+      pc.addEventListener('icecandidate', (event) => {
+        if (event.candidate) {
+          console.log('Sending ICE candidate')
+          console.log('Candidate string:', event.candidate.candidate)
+          
+          // Parse candidate string to get type info and track stats
+          const candidateStr = event.candidate.candidate
+          if (candidateStr.includes('typ host')) {
+            console.log('>>> HOST candidate (local network)')
+            candidateStats.current.host++
+          } else if (candidateStr.includes('typ srflx')) {
+            console.log('>>> SRFLX candidate (STUN - public IP)')
+            candidateStats.current.srflx++
+          } else if (candidateStr.includes('typ relay')) {
+            console.log('>>> RELAY candidate (TURN - relayed) 🎉')
+            candidateStats.current.relay++
+          } else if (candidateStr.includes('typ prflx')) {
+            console.log('>>> PRFLX candidate (peer reflexive)')
+            candidateStats.current.prflx++
+          }
+          
+          client.publish({
+            destination: '/app/ice-candidate',
+            body: JSON.stringify({
+              type: 'ice-candidate',
+              conversationId,
+              candidate: event.candidate,
+            })
           })
-        })
-      }
-    });
+        } else {
+          console.log('ICE candidate gathering finished - all candidates sent')
+          console.log('📊 CANDIDATE SUMMARY:', candidateStats.current)
+          if (candidateStats.current.relay === 0) {
+            console.error('⚠️ NO RELAY CANDIDATES - TURN servers not working!')
+            console.log('💡 This explains why connection fails when SRFLX alone is insufficient')
+          } else {
+            console.log('✅ RELAY candidates available - TURN servers working')
+          }
+        }
+      });
 
-    
+      pc.addEventListener('connectionstatechange', () => {
+        console.log('Connection state changed:', pc.connectionState)
+        if (pc.connectionState === 'connected') {
+          setCallStatus('Connected')
+        } else if (pc.connectionState === 'disconnected') {
+          setCallStatus('Disconnected')
+        } else if (pc.connectionState === 'failed') {
+          console.error('WebRTC connection failed')
+          setCallStatus('Connection failed')
+          // Optionally try to restart the connection
+          setTimeout(() => {
+            console.log('Attempting to restart ICE...')
+            pc.restartIce()
+          }, 2000)
+        }
+      });
+
+      pc.addEventListener('iceconnectionstatechange', () => {
+        console.log('ICE connection state changed:', pc.iceConnectionState)
+        if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+          setCallStatus('Connected')
+          console.log('🎉 ICE connection successful!')
+        } else if (pc.iceConnectionState === 'disconnected') {
+          setCallStatus('Reconnecting...')
+        } else if (pc.iceConnectionState === 'failed') {
+          console.error('ICE connection failed')
+          console.log('📊 Final candidate stats:', candidateStats.current)
+          if (candidateStats.current.relay === 0) {
+            console.error('💔 Connection failed because NO RELAY candidates were generated')
+            console.log('🔧 TURN servers are not reachable or credentials are invalid')
+            console.log('🌐 Both peers are likely behind restrictive NATs requiring TURN relay')
+          } else {
+            console.error('💔 Connection failed despite having RELAY candidates')
+            console.log('🔍 This suggests network-level connectivity issues')
+          }
+          setCallStatus('Connection failed')
+          // Try to restart ICE
+          setTimeout(() => {
+            console.log('Attempting to restart ICE after failure...')
+            if (pc.connectionState !== 'closed') {
+              // Reset candidate stats for retry
+              candidateStats.current = { host: 0, srflx: 0, relay: 0, prflx: 0 }
+              pc.restartIce()
+            }
+          }, 3000)
+        } else if (pc.iceConnectionState === 'checking') {
+          setCallStatus('Connecting...')
+          console.log('🔍 Checking ICE connectivity with gathered candidates...')
+        }
+      });
+
+      pc.addEventListener('icegatheringstatechange', () => {
+        console.log('ICE gathering state changed:', pc.iceGatheringState)
+      });
+
+      pc.addEventListener('negotiationneeded', () => {
+        console.log('Negotiation needed')
+      });
+
+    } catch (error) {
+      console.error('Failed to create PeerConnection:', error)
+      setCallStatus('Connection setup failed')
+      return
+    }
   }
 
-  const handleOffer = async (offer: any) => {
+  const flushBufferedIceCandidates = async () => {
+    console.log('Flushing buffered ICE candidates:', iceCandidateBuffer.current.length)
+    const bufferedCandidates = [...iceCandidateBuffer.current]
+    iceCandidateBuffer.current = []
+    
+    for (const candidate of bufferedCandidates) {
+      try {
+        if (pcRef.current) {
+          await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate))
+          console.log('Buffered ICE candidate added successfully')
+        }
+      } catch (error) {
+        console.error('Error adding buffered ICE candidate:', error)
+      }
+    }
+  }
+
+  const handleOffer = async (offer: any, client: Client) => {
     if (!pcRef.current) return
     
     try {
       console.log('Received offer')
+      console.log('Current signaling state:', pcRef.current.signalingState)
+      
+      // Only process offer if we're in the correct state
+      if (pcRef.current.signalingState !== 'stable') {
+        console.warn('Ignoring offer - not in stable state, current state:', pcRef.current.signalingState)
+        return
+      }
+      
       await pcRef.current.setRemoteDescription(new RTCSessionDescription(offer))
+      console.log('Remote offer set successfully')
+      
+      // Flush any buffered ICE candidates after setting remote description
+      await flushBufferedIceCandidates()
+      
       const answer = await pcRef.current.createAnswer()
       await pcRef.current.setLocalDescription(answer)
+      console.log('Local answer set successfully')
       
-      if (stompClient) {
-        stompClient.publish({
+      if (client) {
+        client.publish({
           destination: '/app/answer',
           body: JSON.stringify({
             type: 'answer',
@@ -220,6 +417,7 @@ export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route })
           })
         })
       }
+      console.log('Sent answer')
     } catch (error) {
       console.error('Error handling offer:', error)
     }
@@ -230,7 +428,19 @@ export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route })
     
     try {
       console.log('Received answer')
+      console.log('Current signaling state:', pcRef.current.signalingState)
+      
+      // Only process answer if we're in the correct state
+      if (pcRef.current.signalingState !== 'have-local-offer') {
+        console.warn('Ignoring answer - not in have-local-offer state, current state:', pcRef.current.signalingState)
+        return
+      }
+      
       await pcRef.current.setRemoteDescription(new RTCSessionDescription(answer))
+      console.log('Remote answer set successfully')
+      
+      // Flush any buffered ICE candidates after setting remote description
+      await flushBufferedIceCandidates()
     } catch (error) {
       console.error('Error handling answer:', error)
     }
@@ -240,45 +450,109 @@ export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route })
     if (!pcRef.current) return
     
     try {
-      console.log('Received ICE candidate')
-      await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate))
+      console.log('Received ICE candidate from remote peer')
+      console.log('Remote candidate string:', candidate.candidate)
+      
+      // Parse remote candidate string to get type info
+      const candidateStr = candidate.candidate
+      if (candidateStr.includes('typ host')) {
+        console.log('>>> Received HOST candidate from remote (local network)')
+      } else if (candidateStr.includes('typ srflx')) {
+        console.log('>>> Received SRFLX candidate from remote (STUN - public IP)')
+      } else if (candidateStr.includes('typ relay')) {
+        console.log('>>> Received RELAY candidate from remote (TURN - relayed)')
+      } else if (candidateStr.includes('typ prflx')) {
+        console.log('>>> Received PRFLX candidate from remote (peer reflexive)')
+      }
+      
+      // Check if remote description is set before adding ICE candidate
+      if (pcRef.current.remoteDescription) {
+        await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate))
+        console.log('ICE candidate added successfully')
+      } else {
+        // Buffer the candidate if remote description is not set yet
+        console.log('Buffering ICE candidate - remote description not set')
+        iceCandidateBuffer.current.push(candidate)
+      }
     } catch (error) {
       console.error('Error adding ICE candidate:', error)
     }
   }
 
   const createOffer = async (pc: RTCPeerConnection, client?: Client) => {
-    try {
-      const offer = await pc.createOffer()
-      await pc.setLocalDescription(offer)
-      
-      const clientToUse = client || stompClient
-      if (clientToUse) {
-        clientToUse.publish({
-          destination: '/app/offer',
-          body: JSON.stringify({
-            type: 'offer',
-            conversationId,
-            offer: offer,
-          })
-        })
-      }
-    } catch (error) {
-      console.error('Error creating offer:', error)
+  try {
+    console.log('Creating offer, current signaling state:', pc.signalingState)
+    
+    if (pc.signalingState !== 'stable') {
+      console.warn('Cannot create offer - not in stable state:', pc.signalingState)
+      return
     }
+    
+    // Set offer options for better compatibility
+    const offerOptions = {
+      offerToReceiveVideo: true,
+      offerToReceiveAudio: true,
+      voiceActivityDetection: false
+    }
+    
+    const offer = await pc.createOffer(offerOptions)
+    await pc.setLocalDescription(offer)
+    console.log('Local offer set successfully')
+    
+    const clientToUse = client || stompClient
+    if (clientToUse) {
+      clientToUse.publish({
+        destination: '/app/offer',
+        body: JSON.stringify({
+          type: 'offer',
+          conversationId,
+          offer: offer,
+        })
+      })
+      console.log('Offer sent via STOMP')
+    }
+  } catch (error) {
+    console.error('Error creating offer:', error)
   }
+}
 
   const cleanup = () => {
     console.log('Cleaning up WebRTC resources')
+    
+    // Stop all local stream tracks
     if (localStream) {
       localStream.getTracks().forEach(track => track.stop())
+      setLocalStream(null)
     }
+    
+    // Close peer connection
     if (pcRef.current) {
       pcRef.current.close()
+      pcRef.current = null
     }
+    
+    // Deactivate STOMP client
     if (stompClient) {
       stompClient.deactivate()
+      setStompClient(null)
     }
+    
+    // Clear remote stream
+    setRemoteStream(null)
+    
+    // Clear ICE candidate buffer
+    iceCandidateBuffer.current = []
+    
+    // Reset candidate stats
+    candidateStats.current = { host: 0, srflx: 0, relay: 0, prflx: 0 }
+    
+    // Reset UI states
+    setCallStatus('Connecting...')
+    setCallDuration(0)
+    setIsMuted(false)
+    setIsVideoOn(true)
+    setIsSpeakerOn(true)
+    setContactName('Contact')
   }
 
   // 通话计时器
@@ -393,7 +667,7 @@ export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route })
       
       {/* 远程视频区域 - 医生 */}
       <View style={$remoteVideoContainer}>
-        {remoteStream && isVideoOn ? (
+        {remoteStream ? (
           <RTCView
             streamURL={remoteStream.toURL()}
             style={$remoteVideo}

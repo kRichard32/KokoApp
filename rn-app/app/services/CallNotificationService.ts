@@ -2,6 +2,7 @@
 import messaging from '@react-native-firebase/messaging'
 import { Platform, PermissionsAndroid, Alert } from 'react-native'
 import axios from 'axios'
+import { navigate } from '../navigators/navigationUtilities'
 
 const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL;
 
@@ -18,7 +19,7 @@ export class CallNotificationService {
     console.log('getUserProfileId response:', response.data.id)
     return response.data.id
   }
-  
+
   static async initialize() {
     try {
       // Request permissions for notifications
@@ -51,6 +52,33 @@ export class CallNotificationService {
       this.setupMessageHandlers();
 
       console.log('Call notification service initialized');
+
+      // Set up the answer callback to get user profile and navigate
+      CallNotificationService.onAnswerCallback = async (conversationId: string) => {
+        try {
+          console.log('Answering call for conversation:', conversationId)
+          const userId = await CallNotificationService.getUserProfileId()
+          navigate("VideoCall", {
+            conversationId: conversationId,
+            userId: userId,
+            isInitiator: false
+          })
+        } catch (error) {
+          console.error('Error getting user profile for call answer:', error)
+          // Fallback navigation without user ID
+          navigate("VideoCall", {
+            conversationId: conversationId,
+            userId: 'unknown',
+            isInitiator: false
+          })
+        }
+      }
+
+      // Set up the reject callback
+      CallNotificationService.onRejectCallback = (conversationId: string) => {
+        console.log('Rejecting call for conversation:', conversationId)
+        // Could send rejection message to backend here
+      }
       
     } catch (error) {
       console.error('Error initializing call notification service:', error);

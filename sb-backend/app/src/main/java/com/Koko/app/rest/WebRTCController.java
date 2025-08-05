@@ -34,41 +34,46 @@ public class WebRTCController {
 
     @MessageMapping("/join-call")
     public void joinCall(@Payload JoinCallMessage message, SimpMessageHeaderAccessor headerAccessor) {
+        String sessionId = headerAccessor.getSessionId();
+        message.setUserId(sessionId);
         String token = ((JwtAuthenticationToken) Objects.requireNonNull(headerAccessor.getHeader("simpUser"))).getToken().getTokenValue();
         Map<String, Object> userInfo = jwtService.decodeIdToken(token);
-        message.setUserId(profileService.getProfileByEmail((String) userInfo.get("email")).getId().toString());
-        webRTCService.joinCall(message);
+        webRTCService.joinCall(message,profileService.getProfileByEmail((String) userInfo.get("email")).getId().toString());
     }
 
     @MessageMapping("/offer")
     public void handleOffer(@Payload OfferMessage message, SimpMessageHeaderAccessor headerAccessor) {
+        String sessionId = headerAccessor.getSessionId();
+        message.setUserId(sessionId);
         String token = ((JwtAuthenticationToken) Objects.requireNonNull(headerAccessor.getHeader("simpUser"))).getToken().getTokenValue();
         Map<String, Object> userInfo = jwtService.decodeIdToken(token);
-        message.setUserId(profileService.getProfileByEmail((String) userInfo.get("email")).getId().toString());
-        webRTCService.handleOffer(message);
+        webRTCService.handleOffer(message,profileService.getProfileByEmail((String) userInfo.get("email")).getId().toString());
     }
 
     @MessageMapping("/answer")
     public void handleAnswer(@Payload AnswerMessage message, SimpMessageHeaderAccessor headerAccessor) {
+        String sessionId = headerAccessor.getSessionId();
+        message.setUserId(sessionId);
         String token = ((JwtAuthenticationToken) Objects.requireNonNull(headerAccessor.getHeader("simpUser"))).getToken().getTokenValue();
         Map<String, Object> userInfo = jwtService.decodeIdToken(token);
-        message.setUserId(profileService.getProfileByEmail((String) userInfo.get("email")).getId().toString());
-        webRTCService.handleAnswer(message);
+        webRTCService.handleAnswer(message,profileService.getProfileByEmail((String) userInfo.get("email")).getId().toString());
     }
 
     @MessageMapping("/ice-candidate")
     public void handleIceCandidate(@Payload IceCandidateMessage message, SimpMessageHeaderAccessor headerAccessor) {
+        String sessionId = headerAccessor.getSessionId();
+        message.setUserId(sessionId);
         String token = ((JwtAuthenticationToken) Objects.requireNonNull(headerAccessor.getHeader("simpUser"))).getToken().getTokenValue();
         Map<String, Object> userInfo = jwtService.decodeIdToken(token);
-        message.setUserId(profileService.getProfileByEmail((String) userInfo.get("email")).getId().toString());
-        webRTCService.handleIceCandidate(message);
+        webRTCService.handleIceCandidate(message,profileService.getProfileByEmail((String) userInfo.get("email")).getId().toString());
     }
 
     @MessageMapping("/end-call")
     public void endCall(@Payload EndCallMessage message, SimpMessageHeaderAccessor headerAccessor) {
+        String sessionId = headerAccessor.getSessionId();
+        message.setUserId(sessionId);
         String token = ((JwtAuthenticationToken) Objects.requireNonNull(headerAccessor.getHeader("simpUser"))).getToken().getTokenValue();
         Map<String, Object> userInfo = jwtService.decodeIdToken(token);
-        message.setUserId(profileService.getProfileByEmail((String) userInfo.get("email")).getId().toString());
-        webRTCService.endCall(message);
+        webRTCService.endCall(message,profileService.getProfileByEmail((String) userInfo.get("email")).getId().toString());
     }
 }
