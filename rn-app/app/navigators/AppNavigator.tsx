@@ -51,7 +51,9 @@ export type AppStackParamList = {
     conversationId: string
   }
   VideoCall: {
-    conversationId: string
+    conversationId: string,
+    userId: string,
+    isInitiator: boolean
   }
   People: undefined
   Match: {
@@ -64,6 +66,11 @@ export type AppStackParamList = {
   ProfileCreation: undefined
   // 🔥 Your screens go here
   // IGNITE_GENERATOR_ANCHOR_APP_STACK_PARAM_LIST
+  IncomingCall:{
+    callerName: string,
+    callerAvatar: string,
+    conversationId: string
+  }
 }
 
 /**

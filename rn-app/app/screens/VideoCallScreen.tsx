@@ -1,5 +1,5 @@
 // app/screens/VideoCallScreen.tsx
-import { FC, useState, useEffect } from "react"
+import { FC, useState, useEffect, useRef } from "react"
 import {
   View,
   Pressable,
@@ -10,16 +10,37 @@ import {
   Dimensions,
   StatusBar,
 } from "react-native"
+import {
+  RTCPeerConnection,
+  RTCIceCandidate,
+  RTCSessionDescription,
+  RTCView,
+  MediaStream,
+  mediaDevices,
+} from 'react-native-webrtc'
+import { Client } from '@stomp/stompjs'
+import SockJS from 'sockjs-client'
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import type { AppStackScreenProps } from "@/navigators/AppNavigator"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { useAuth } from "@/context/AuthContext"
 
 interface VideoCallScreenProps extends AppStackScreenProps<"VideoCall"> {}
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window')
+
+// WebRTC Configuration
+const WEBRTC_CONFIG = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ],
+}
+
+const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL;
 
 export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route }) => {
   const {
@@ -27,22 +48,251 @@ export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route })
     theme: { colors, spacing },
   } = useAppTheme()
 
-  // 从路由参数获取联系人信息
-  const { conversationId } = route.params
+  // Get auth context
+  const { authToken } = useAuth()
 
+  // 从路由参数获取联系人信息
+  const { conversationId, userId } = route.params
+  const isInitiator = (route.params as any)?.isInitiator || false
+
+  // WebRTC States - using a different approach for peer connection
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null)
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null)
+  const [stompClient, setStompClient] = useState<Client | null>(null)
+  
+  // Store peer connection using useRef
+  const pcRef = useRef<RTCPeerConnection | null>(null)
+
+  // UI States
   const [callDuration, setCallDuration] = useState(0)
   const [isMuted, setIsMuted] = useState(false)
   const [isVideoOn, setIsVideoOn] = useState(true)
   const [isSpeakerOn, setIsSpeakerOn] = useState(true)
+  const [callStatus, setCallStatus] = useState('Connecting...')
+  const [contactName, setContactName] = useState('Contact')
+
+  // Initialize WebRTC
+  useEffect(() => {
+    initializeCall()
+    return () => {
+      cleanup()
+    }
+  }, [])
+
+  const initializeCall = async () => {
+    try {
+      console.log('Initializing WebRTC call...')
+      
+      // Get user media first
+      const stream = await mediaDevices.getUserMedia({
+        video: {
+          width: 1280,
+          height: 720,
+          frameRate: 30,
+          facingMode: 'user',
+        },
+        audio: true,
+      })
+      console.log('Got user media stream')
+      setLocalStream(stream)
+
+      console.log('serverurl',serverUrl)
+      // Initialize STOMP connection with SockJS
+      const sockjsUrl = serverUrl + '/ws'
+      console.log('SockJS URL:', sockjsUrl)
+      console.log('Connecting to STOMP server with SockJS...')
+      const client = new Client({
+        webSocketFactory: () => new SockJS(sockjsUrl, null, { transports: ['websocket', 'xhr-streaming', 'xhr-polling'], withCredentials: true }),
+        // Force WebSocket to include credentials in handshake
+        forceBinaryWSFrames: false,
+        appendMissingNULLonIncoming: true,
+
+        
+        onConnect: (frame) => {
+          console.log('STOMP connected:', frame)
+          
+          // Now that STOMP is connected, setup WebRTC
+          setupWebRTC(stream, client)
+          
+          // Subscribe to call events for this conversation
+          client.subscribe(`/topic/call/${conversationId}`, (message) => {
+            const data = JSON.parse(message.body)
+            console.log('Received STOMP message:', data)
+            console.log('client', userId)
+            if (data.senderId != userId){
+              switch (data.type) {
+                case "peer-joined":
+                  // If initiator, create offer
+                  if (isInitiator) {
+                    console.log('Creating offer as initiator')
+                    createOffer(pcRef.current as RTCPeerConnection, client)
+                  }
+                case 'offer':
+                  handleOffer(data.offer)
+                  break
+                case 'answer':
+                  handleAnswer(data.answer)
+                  break
+                case 'ice-candidate':
+                  handleIceCandidate(data.candidate)
+                  break
+                case 'call-ended':
+                  endCall()
+                  break
+              }
+           }
+          })
+
+          // Send join call message
+          client.publish({
+            destination: '/app/join-call',
+            body: JSON.stringify({ type: 'join-call', conversationId })
+          })
+        },
+        onStompError: (frame) => {
+          console.error('STOMP error:', frame)
+        },
+        onWebSocketError: (error) => {
+          console.error('WebSocket error:', error)
+        }
+      })
+
+      client.activate()
+      setStompClient(client)
+
+    } catch (error) {
+      console.error('Error initializing call:', error)
+      setCallStatus('Connection failed')
+    }
+  }
+
+  const setupWebRTC = (stream: MediaStream, client: Client) => {
+    // Create peer connection
+    const pc = new RTCPeerConnection(WEBRTC_CONFIG)
+    // Store the peer connection reference using useRef (with type assertion for compatibility)
+    pcRef.current = pc as RTCPeerConnection
+
+    // Add local stream to peer connection
+    stream.getTracks().forEach(track => {
+      pc.addTrack(track, stream);
+    });
+
+    pc.addEventListener('track', (event) => {
+      // Handle remote stream
+      console.log('Received remote stream')
+      setRemoteStream(event.streams[0])
+      setCallStatus('Connected')
+    });
+    
+    pc.addEventListener('icecandidate', (event) => {
+      if (event.candidate) {
+        console.log('Sending ICE candidate')
+        client.publish({
+          destination: '/app/ice-candidate',
+          body: JSON.stringify({
+            type: 'ice-candidate',
+            conversationId,
+            candidate: event.candidate,
+          })
+        })
+      }
+    });
+
+    
+  }
+
+  const handleOffer = async (offer: any) => {
+    if (!pcRef.current) return
+    
+    try {
+      console.log('Received offer')
+      await pcRef.current.setRemoteDescription(new RTCSessionDescription(offer))
+      const answer = await pcRef.current.createAnswer()
+      await pcRef.current.setLocalDescription(answer)
+      
+      if (stompClient) {
+        stompClient.publish({
+          destination: '/app/answer',
+          body: JSON.stringify({
+            type: 'answer',
+            conversationId,
+            answer: answer,
+          })
+        })
+      }
+    } catch (error) {
+      console.error('Error handling offer:', error)
+    }
+  }
+
+  const handleAnswer = async (answer: any) => {
+    if (!pcRef.current) return
+    
+    try {
+      console.log('Received answer')
+      await pcRef.current.setRemoteDescription(new RTCSessionDescription(answer))
+    } catch (error) {
+      console.error('Error handling answer:', error)
+    }
+  }
+
+  const handleIceCandidate = async (candidate: any) => {
+    if (!pcRef.current) return
+    
+    try {
+      console.log('Received ICE candidate')
+      await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate))
+    } catch (error) {
+      console.error('Error adding ICE candidate:', error)
+    }
+  }
+
+  const createOffer = async (pc: RTCPeerConnection, client?: Client) => {
+    try {
+      const offer = await pc.createOffer()
+      await pc.setLocalDescription(offer)
+      
+      const clientToUse = client || stompClient
+      if (clientToUse) {
+        clientToUse.publish({
+          destination: '/app/offer',
+          body: JSON.stringify({
+            type: 'offer',
+            conversationId,
+            offer: offer,
+          })
+        })
+      }
+    } catch (error) {
+      console.error('Error creating offer:', error)
+    }
+  }
+
+  const cleanup = () => {
+    console.log('Cleaning up WebRTC resources')
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop())
+    }
+    if (pcRef.current) {
+      pcRef.current.close()
+    }
+    if (stompClient) {
+      stompClient.deactivate()
+    }
+  }
 
   // 通话计时器
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCallDuration(prev => prev + 1)
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [])
+    let timer: number
+    if (callStatus === 'Connected') {
+      timer = setInterval(() => {
+        setCallDuration(prev => prev + 1)
+      }, 1000)
+    }
+    return () => {
+      if (timer) clearInterval(timer)
+    }
+  }, [callStatus])
 
   // 格式化通话时长
   const formatCallDuration = (seconds: number) => {
@@ -53,28 +303,84 @@ export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route })
 
   // 结束通话
   const endCall = () => {
+    if (stompClient) {
+      stompClient.publish({
+        destination: '/app/end-call',
+        body: JSON.stringify({ type: 'end-call',conversationId })
+      })
+    }
+    cleanup()
     navigation.goBack()
   }
 
   // 切换静音
   const toggleMute = () => {
-    setIsMuted(prev => !prev)
+    if (localStream) {
+      localStream.getAudioTracks().forEach(track => {
+        track.enabled = isMuted
+      })
+      setIsMuted(prev => !prev)
+    }
   }
 
   // 切换摄像头
   const toggleVideo = () => {
-    setIsVideoOn(prev => !prev)
+    if (localStream) {
+      localStream.getVideoTracks().forEach(track => {
+        track.enabled = !isVideoOn
+      })
+      setIsVideoOn(prev => !prev)
+    }
   }
 
   // 切换扬声器
   const toggleSpeaker = () => {
     setIsSpeakerOn(prev => !prev)
+    // TODO: Implement actual speaker toggle with native module
+  }
+
+  // 切换摄像头前后
+  const switchCamera = async () => {
+    try {
+      if (localStream) {
+        localStream.getVideoTracks().forEach(track => track.stop())
+        
+        const newStream = await mediaDevices.getUserMedia({
+          video: {
+            width: 1280,
+            height: 720,
+            frameRate: 30,
+            facingMode: isVideoOn ? 'environment' : 'user',
+          },
+          audio: true,
+        })
+        
+        setLocalStream(newStream)
+        
+        if (pcRef.current) {
+          // Replace track in peer connection
+          const videoTrack = newStream.getVideoTracks()[0]
+          const sender = (pcRef.current as any).getSenders().find((s: any) => 
+            s.track && s.track.kind === 'video'
+          )
+          if (sender && sender.replaceTrack) {
+            await sender.replaceTrack(videoTrack)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error switching camera:', error)
+    }
   }
 
   // 切换到语音通话
   const switchToVoiceCall = () => {
     setIsVideoOn(false)
-    // TODO: 实际切换到语音模式
+    if (localStream) {
+      localStream.getVideoTracks().forEach(track => {
+        track.enabled = false
+      })
+    }
   }
 
   return (
@@ -87,11 +393,11 @@ export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route })
       
       {/* 远程视频区域 - 医生 */}
       <View style={$remoteVideoContainer}>
-        {isVideoOn ? (
-          <Image
-            source={{ uri: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=600&fit=crop&crop=face" }}
+        {remoteStream && isVideoOn ? (
+          <RTCView
+            streamURL={remoteStream.toURL()}
             style={$remoteVideo}
-            defaultSource={require("../../assets/images/avatar-placeholder.jpg")}
+            objectFit="cover"
           />
         ) : (
           <View style={$videoOffContainer}>
@@ -100,25 +406,28 @@ export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route })
               style={$avatarLarge}
               defaultSource={require("../../assets/images/avatar-placeholder.jpg")}
             />
-            <Text style={$videoOffText}>Camera is off</Text>
+            <Text style={$videoOffText}>
+              {remoteStream ? "Camera is off" : "Connecting..."}
+            </Text>
           </View>
         )}
         
         {/* 通话信息覆盖层 */}
         <View style={$callInfoOverlay}>
-          <Text style={$contactNameLarge}>{"TODO"}</Text>
+          <Text style={$contactNameLarge}>{contactName}</Text>
           <Text style={$callDurationText}>{formatCallDuration(callDuration)}</Text>
-          <Text style={$callStatusText}>Video Call</Text>
+          <Text style={$callStatusText}>{callStatus}</Text>
         </View>
       </View>
 
       {/* 本地视频区域 - 用户自己 */}
       <View style={$localVideoContainer}>
-        {isVideoOn ? (
-          <Image
-            source={{ uri: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=300&fit=crop&crop=face" }}
+        {localStream && isVideoOn ? (
+          <RTCView
+            streamURL={localStream.toURL()}
             style={$localVideo}
-            defaultSource={require("../../assets/images/avatar-placeholder.jpg")}
+            objectFit="cover"
+            mirror={true}
           />
         ) : (
           <View style={$localVideoOff}>
@@ -202,6 +511,22 @@ export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route })
               isSpeakerOn ? $controlButtonTextActive : $controlButtonTextInactive
             ]}>
               Speaker
+            </Text>
+          </Pressable>
+
+          {/* 切换摄像头按钮 */}
+          <Pressable
+            style={[$controlButton, $controlButtonInactive]}
+            onPress={switchCamera}
+            accessible
+            accessibilityRole="button"
+            accessibilityLabel="Switch camera"
+          >
+            <Text style={[$controlButtonIcon, $controlButtonIconInactive]}>
+              🔄
+            </Text>
+            <Text style={[$controlButtonText, $controlButtonTextInactive]}>
+              Flip
             </Text>
           </Pressable>
         </View>

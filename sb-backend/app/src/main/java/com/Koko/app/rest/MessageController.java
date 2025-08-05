@@ -164,6 +164,28 @@ public class MessageController {
         return conversationDto;
     }
     @CrossOrigin()
+    @GetMapping("/getConversationRecipient")
+    public long getConversationRecipient(@CookieValue(value = "token", required = false) String token,
+                                           @RequestParam("conversationId") int conversationId) {
+        Map<String, Object> userInfo = jwtService.decodeIdToken(token);
+        Profile profile = profileService.getProfileByEmail((String) userInfo.get("email"));
+        Conversation conversation = conversationService.getConversationByConversationID(profile.getId(),conversationId);
+        Set<Profile> users =  conversation.getUsers();
+        if (users.size() > 2){
+            return -1;
+        }
+        else{
+            for (Profile user : users) {
+                if (!user.getId().equals(profile.getId())){
+                    return user.getId();
+                }
+            }
+        }
+        return -1;
+    }
+
+
+    @CrossOrigin()
     @GetMapping("/getConversationWithoutUser")
     public ConversationDto getConversationWithoutUser(@CookieValue(value = "token", required = false) String token,
                                            @RequestParam("conversationId") int conversationId) {

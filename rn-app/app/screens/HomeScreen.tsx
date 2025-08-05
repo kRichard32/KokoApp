@@ -12,11 +12,12 @@ import {
   ImageStyle,
 } from "react-native"
 import axios from "axios"
+import messaging from '@react-native-firebase/messaging'
+import '@/config/firebase' // Initialize Firebase
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
-import { VoiceCommandButton } from "@/components/VoiceCommandButton"
 import { VoiceRecordingButton } from "@/components/VoiceRecordingButton"
 import type { AppStackScreenProps } from "@/navigators/AppNavigator"
 import { useAppTheme } from "@/theme/context"
@@ -39,6 +40,24 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
   // Fetch user profile on component mount
   useEffect(() => {
     fetchUserProfile()
+    
+    // Register FCM token and set up cleanup
+    const setupFCM = async () => {
+      const cleanup = await registerFCMToken()
+      return cleanup
+    }
+    
+    let cleanupFn: (() => void) | undefined
+    setupFCM().then(cleanup => {
+      cleanupFn = cleanup
+    })
+    
+    // Cleanup function for useEffect
+    return () => {
+      if (cleanupFn) {
+        cleanupFn()
+      }
+    }
   }, [])
 
   const fetchUserProfile = async () => {
@@ -93,6 +112,66 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
         console.log('Could not load profile picture, using default avatar:', error.message)
       }
       // Keep default profile picture - don't set profilePictureUri
+    }
+  }
+
+  const registerFCMToken = async (): Promise<(() => void) | undefined> => {
+    try {
+      console.log('Registering FCM token for Android...')
+      
+      // Request notification permission
+      const authStatus = await messaging().requestPermission()
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL
+
+      if (!enabled) {
+        console.log('Push notification permission denied')
+        return undefined
+      }
+
+      // Get FCM token
+      const fcmToken = await messaging().getToken()
+      
+      if (!fcmToken) {
+        console.log('No FCM token available')
+        return undefined
+      }
+      
+      console.log('Android FCM Token:', fcmToken)
+      
+      // Register token with backend
+      const response = await axios.post(`${serverUrl}/api/notifications/register-token`, {
+        fcmToken,
+        platform: Platform.OS, // 'android'
+      }, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      console.log('FCM token registered successfully:', response.data)
+
+      // Set up foreground notification handling
+      const unsubscribe = messaging().onMessage(async remoteMessage => {
+        console.log('Foreground notification received:', remoteMessage)
+        
+        if (remoteMessage.notification) {
+          console.log('Notification Title:', remoteMessage.notification.title)
+          console.log('Notification Body:', remoteMessage.notification.body)
+          
+          // You can show a custom in-app notification here if needed
+          // For now, just log the notification details
+        }
+      })
+
+      // Return cleanup function
+      return unsubscribe
+
+    } catch (error) {
+      console.error('Error registering FCM token:', error)
+      return undefined
     }
   }
 

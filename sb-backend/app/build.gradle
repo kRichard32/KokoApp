@@ -46,7 +46,15 @@ dependencies {
 	// Google Cloud Speech API - Use BOM for version management
 	implementation platform('com.google.cloud:libraries-bom:26.52.0')
 	implementation 'com.google.cloud:google-cloud-speech'
+
+	// Firebase Admin SDK for push notifications
+	implementation 'com.google.firebase:firebase-admin:9.2.0'
+
+	//Websocket stuff
+	// https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-websocket
+	implementation("org.springframework.boot:spring-boot-starter-websocket:3.5.4")
 	
+
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'

@@ -19,6 +19,7 @@ import { Audio } from 'expo-av'
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import VoiceRecorder, { VoiceRecorderRef } from "@/components/VoiceRecorder"
+import { CallNotificationService } from "@/services/CallNotificationService"
 import type { AppStackScreenProps } from "@/navigators/AppNavigator"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -618,10 +619,46 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
   }
 
   // 视频/语音通话功能
-  const startVideoCall = () => {
-    // 导航到视频通话界面
-    navigation.navigate('VideoCall', { conversationId })
+  const startVideoCall = async() => {
+    try {
+    // Get recipient user ID from conversation
+    const recipientUserId = await getRecipientUserId(conversationId)
+    const userId = await getUserProfileId()
+    
+    // Send call notification to recipient
+    await CallNotificationService.sendCallNotification(recipientUserId, {
+      name: contact?.name || 'Unknown',
+      avatar: contact?.avatar,
+      conversationId: conversationId,
+    })
+    stopPolling() // 停止轮询新消息
+    // Navigate to video call as initiator
+    navigation.navigate("VideoCall", {
+      conversationId: conversationId,
+      userId: userId,
+      isInitiator: true
+    })
+  } catch (error) {
+    console.error('Error starting video call:', error)
   }
+  }
+const getUserProfileId = async (): Promise<string> => {
+  const response = await axios.get(`${serverUrl}/api/profile/getUserProfile`, {
+    withCredentials: true,
+  })
+  console.log('getUserProfileId response:', response.data.id)
+  return response.data.id
+}
+
+  const getRecipientUserId = async (conversationId: string): Promise<string> => {
+  // Get the other user's ID from the conversation
+  const response = await axios.get(`${serverUrl}/api/messages/getConversationRecipient`, {
+    params: { conversationId },
+    withCredentials: true,
+  })
+  console.log('getRecipientUserId response:', response.data)
+  return response.data
+}
 
   const startVoiceCall = () => {
     // TODO: 启动语音通话功能
