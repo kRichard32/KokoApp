@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Kindial",
-    "slug": "kindial-app", 
+    "name": "Koko",
+    "slug": "Koko-app", 
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon-all.png",
-    "scheme": "kindial",
+    "scheme": "koko",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
       "**/*"
@@ -15,7 +15,7 @@
         "foregroundImage": "./assets/images/app-icon-android-adaptive-foreground.png",
         "backgroundImage": "./assets/images/app-icon-android-adaptive-background.png"
       },
-      "package": "com.kindial.app",
+      "package": "com.koko.app",
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.CAMERA",
@@ -35,7 +35,7 @@
           "action": "VIEW",
           "data": [
             {
-              "scheme": "kindial",
+              "scheme": "koko",
               "host": "call"
             }
           ],

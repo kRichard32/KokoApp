@@ -240,8 +240,14 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
       safeAreaEdges={["top", "bottom"]}
       contentContainerStyle={themed($container)}
     >
-      {/* Greeting */}
-      <View style={$greetingRow}>
+      {/* 大标题 */}
+      <Text preset="heading" style={themed($headline)}>
+        What do {"\n"}
+        you <Text style={{ color: colors.tint, textDecorationLine: 'underline', fontSize: 52, fontWeight: 'bold' }}>need?</Text> 😊
+      </Text>
+
+      {/* Overlayed Greeting Row */}
+      <View style={[$greetingRowOverlay, { paddingTop: spacing.xl, paddingHorizontal: spacing.lg }]}>
         {/* 头像 - 点击进入健康打卡 */}
         <Pressable
           accessible
@@ -249,7 +255,7 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
           accessibilityLabel="Health Check-in"
           onPress={() => navigation.navigate("HealthCheck")}
         >
-          {/* <Image
+           <Image
             source={
               profilePictureUri 
                 ? { uri: profilePictureUri }
@@ -260,7 +266,7 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
               { borderColor: colors.palette.neutral300 },
             ]}
             resizeMode="cover"
-          /> */}
+          /> 
         </Pressable>
         {/* 文本容器 */}
         <View>
@@ -270,12 +276,6 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
           <Text weight="medium">{userName}</Text> */}
         </View>
       </View>
-
-      {/* 大标题 */}
-      <Text preset="heading" style={themed($headline)}>
-        What do {"\n"}
-        you <Text style={{ color: colors.tint, textDecorationLine: 'underline', fontSize: 52, fontWeight: 'bold' }}>need?</Text> 😊
-      </Text>
 
       {/* 4 宫格按钮 */}
       <View style={$cardGrid}>
@@ -364,6 +364,17 @@ const $greetingRow: ViewStyle = {
   flexDirection: "row",
   alignItems: "center",
   marginBottom: 24,
+}
+
+const $greetingRowOverlay: ViewStyle = {
+  position: "absolute",
+  top: 0,
+  left: 0,
+  right: 0,
+  zIndex: 10,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "flex-end",
 }
 
 const $headline: ThemedStyle<TextStyle> = ({ spacing }) => ({

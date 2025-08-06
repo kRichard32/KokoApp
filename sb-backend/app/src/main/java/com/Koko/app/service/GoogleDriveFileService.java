@@ -29,7 +29,7 @@ import jakarta.annotation.PostConstruct;
 @Service
 public class GoogleDriveFileService {
     
-    private static final String APPLICATION_NAME = "Kindial-Backend";
+    private static final String APPLICATION_NAME = "Koko-Backend";
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     
     @Value("${google.drive.credentials.json}")

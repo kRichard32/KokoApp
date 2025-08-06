@@ -50,7 +50,7 @@ export const OAuthHandler = () => {
       console.log('URL Length:', url.length)
       console.log('URL Type:', typeof url)
       
-      if (url.includes('kindial://oauth-callback')) {
+      if (url.includes('koko://oauth-callback')) {
         console.log('=== OAUTH CALLBACK DETECTED ===')
         // Extract the query parameters from the OAuth callback
         try {

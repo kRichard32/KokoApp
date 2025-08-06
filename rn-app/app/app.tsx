@@ -38,13 +38,13 @@ import * as storage from "./utils/storage"
 export const NAVIGATION_PERSISTENCE_KEY = "NAVIGATION_STATE"
 
 // Mobile linking configuration for OAuth callbacks
-const prefix = "kindial://"
+const prefix = "koko://"
 const config = {
   screens: {
     OAuthLogin: {
       path: "",
     },
-    OAuthCallback: "oauth-callback", // Handle kindial://oauth-callback
+    OAuthCallback: "oauth-callback", // Handle koko://oauth-callback
     Login: "login",
     Welcome: "welcome",
     Demo: {
