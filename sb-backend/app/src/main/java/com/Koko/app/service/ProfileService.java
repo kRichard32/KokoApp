@@ -1,15 +1,16 @@
 package com.Koko.app.service;
 
-import com.Koko.app.domain.Profile;
-import com.Koko.app.repositories.ProfileRepository;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import com.Koko.app.domain.Profile;
+import com.Koko.app.repositories.ProfileRepository;
 
 @Service
 public class ProfileService {
@@ -41,6 +42,33 @@ public class ProfileService {
     }
     public List<Profile> getProfiles() {
         return profileRepository.findAll();
+    }
+
+    // FCM Token management methods
+    public void updateFcmToken(long profileId, String fcmToken, String platform) {
+        Profile profile = getProfile(profileId);
+        profile.setFcmToken(fcmToken);
+        profile.setPlatform(platform);
+        profileRepository.save(profile);
+    }
+
+    public void updateFcmTokenByEmail(String email, String fcmToken, String platform) {
+        Profile profile = getProfileByEmail(email);
+        if (profile == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Profile not found for email: " + email
+            );
+        }
+        profile.setFcmToken(fcmToken);
+        profile.setPlatform(platform);
+        profileRepository.save(profile);
+    }
+
+    public void clearFcmToken(long profileId) {
+        Profile profile = getProfile(profileId);
+        profile.setFcmToken(null);
+        profile.setPlatform(null);
+        profileRepository.save(profile);
     }
 
 }

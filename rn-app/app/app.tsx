@@ -17,6 +17,7 @@ if (__DEV__) {
   require("./devtools/ReactotronConfig.ts")
 }
 import "./utils/gestureHandler"
+import "./config/firebase" // Initialize Firebase
 
 import { useEffect, useState } from "react"
 import { useFonts } from "expo-font"
@@ -75,6 +76,24 @@ export function App() {
   const [isI18nInitialized, setIsI18nInitialized] = useState(false)
 
   useEffect(() => {
+    // Initialize CallNotificationService with dynamic import to avoid circular dependencies
+    const initializeNotifications = async () => {
+      try {
+        const { CallNotificationService } = await import('./services/CallNotificationService')
+        
+        await CallNotificationService.initialize()
+        
+        // // Initialize callbacks after navigation is set up
+        // CallNotificationService.initializeCallbacks()
+        
+        console.log('CallNotificationService initialized successfully')
+      } catch (error) {
+        console.error('Failed to initialize CallNotificationService:', error)
+      }
+    }
+    
+    initializeNotifications()
+    
     initI18n()
       .then(() => setIsI18nInitialized(true))
       .then(() => loadDateFnsLocale())

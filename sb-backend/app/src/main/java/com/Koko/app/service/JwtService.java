@@ -49,25 +49,6 @@ public class JwtService {
                 .compact();
     }
 
-    public Map<String, Object> verifyToken(String token) {
-        try {
-            SecretKey key = Keys.hmacShaKeyFor(config.getTokenSecret().getBytes());
-
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(token)
-                    .getBody();
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> user = (Map<String, Object>) claims.get("user");
-
-            return user;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
     public Map<String, Object> decodeIdToken(String idToken) {
         try {
             // Clean the token - remove "Bearer " prefix if present

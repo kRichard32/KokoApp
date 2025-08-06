@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "34245995738",
+    "project_id": "reference-tine-466905-q1",
+    "storage_bucket": "reference-tine-466905-q1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:34245995738:android:8f8558a85e824bc7f109e3",
+        "android_client_info": {
+          "package_name": "com.kindial.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD59W77JOqq3NcMGxge7LJOvrGB6FUjUOk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
