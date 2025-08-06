@@ -326,12 +326,12 @@ const $backButton: ViewStyle = {
 }
 
 const $backIcon: TextStyle = {
-  fontSize: 24,
+  fontSize: 32, // 增大返回箭头
   color: "#666",
 }
 
 const $headerTitle: TextStyle = {
-  fontSize: 20,
+  fontSize: 28, // 增大标题字体
   fontWeight: "600",
   color: "#000",
 }
@@ -342,7 +342,7 @@ const $filterButton: ViewStyle = {
 }
 
 const $filterIcon: TextStyle = {
-  fontSize: 20,
+  fontSize: 28, // 增大设置图标
 }
 
 const $filterContainer: ViewStyle = {
@@ -353,8 +353,8 @@ const $filterContainer: ViewStyle = {
 }
 
 const $filterTab: ViewStyle = {
-  paddingHorizontal: 16,
-  paddingVertical: 8,
+  paddingHorizontal: 20, // 增大按钮内边距
+  paddingVertical: 12,   // 增大按钮内边距
   borderRadius: 20,
   backgroundColor: "#F0F0F0",
 }
@@ -364,7 +364,7 @@ const $activeFilterTab: ViewStyle = {
 }
 
 const $filterTabText: TextStyle = {
-  fontSize: 14,
+  fontSize: 18, // 增大过滤器文字
   fontWeight: "500",
   color: "#666",
 }
@@ -374,17 +374,17 @@ const $activeFilterTabText: TextStyle = {
 }
 
 const $listContainer: ViewStyle = {
-  padding: 16,
+  padding: 20, // 增大列表内边距
 }
 
 const $separator: ViewStyle = {
-  height: 16,
+  height: 20, // 增大卡片间距
 }
 
 const $personCard: ViewStyle = {
   backgroundColor: "#FFFFFF",
-  borderRadius: 16,
-  padding: 16,
+  borderRadius: 20, // 增大圆角
+  padding: 20,      // 增大卡片内边距
   shadowColor: "#000",
   shadowOffset: { width: 0, height: 2 },
   shadowOpacity: 0.1,
@@ -396,18 +396,18 @@ const $personCard: ViewStyle = {
 
 const $cardHeader: ViewStyle = {
   flexDirection: "row",
-  marginBottom: 12,
+  marginBottom: 16, // 增大间距
 }
 
 const $avatarContainer: ViewStyle = {
   position: "relative",
-  marginRight: 12,
+  marginRight: 16, // 增大头像与信息间距
 }
 
 const $avatar: ImageStyle = {
-  width: 60,
-  height: 60,
-  borderRadius: 30,
+  width: 80,  // 增大头像尺寸
+  height: 80, // 增大头像尺寸
+  borderRadius: 40,
   backgroundColor: "#F0F0F0",
 }
 
@@ -415,9 +415,9 @@ const $onlineIndicator: ViewStyle = {
   position: "absolute",
   bottom: 2,
   right: 2,
-  width: 16,
-  height: 16,
-  borderRadius: 8,
+  width: 20, // 增大在线指示器
+  height: 20,
+  borderRadius: 10,
   backgroundColor: "#34C759",
   borderWidth: 2,
   borderColor: "#FFFFFF",
@@ -428,70 +428,71 @@ const $personInfo: ViewStyle = {
 }
 
 const $personName: TextStyle = {
-  fontSize: 18,
+  fontSize: 24, // 增大姓名字体
   fontWeight: "600",
   color: "#000",
-  marginBottom: 4,
+  marginBottom: 6,
 }
 
 const $location: TextStyle = {
-  fontSize: 14,
+  fontSize: 18, // 增大位置信息字体
   color: "#666",
-  marginBottom: 8,
+  marginBottom: 10,
 }
 
 const $compatibilityBadge: ViewStyle = {
   alignSelf: "flex-start",
-  paddingHorizontal: 8,
-  paddingVertical: 4,
+  paddingHorizontal: 12, // 增大内边距
+  paddingVertical: 6,    // 增大内边距
   borderRadius: 12,
 }
 
 const $compatibilityText: TextStyle = {
-  fontSize: 12,
+  fontSize: 16, // 增大匹配度文字
   fontWeight: "600",
   color: "#FFFFFF",
 }
 
 const $bio: TextStyle = {
-  fontSize: 14,
+  fontSize: 18, // 增大个人简介字体
   color: "#333",
-  lineHeight: 20,
-  marginBottom: 12,
+  lineHeight: 26, // 增大行高
+  marginBottom: 16,
 }
 
 const $interestsContainer: ViewStyle = {
   flexDirection: "row",
   flexWrap: "wrap",
-  gap: 6,
-  marginBottom: 16,
+  gap: 8, // 增大标签间距
+  marginBottom: 20,
 }
 
 const $interestTag: ViewStyle = {
   backgroundColor: "#F0F0F0",
-  paddingHorizontal: 8,
-  paddingVertical: 4,
+  paddingHorizontal: 12, // 增大标签内边距
+  paddingVertical: 6,    // 增大标签内边距
   borderRadius: 12,
 }
 
 const $interestText: TextStyle = {
-  fontSize: 12,
+  fontSize: 16, // 增大兴趣标签字体
   color: "#666",
   fontWeight: "500",
 }
 
 const $cardActions: ViewStyle = {
   flexDirection: "row",
-  gap: 8,
+  gap: 12, // 增大按钮间距
 }
 
 const $actionButton: ViewStyle = {
   flex: 1,
-  paddingVertical: 10,
-  paddingHorizontal: 16,
+  paddingVertical: 16, // 增大按钮内边距
+  paddingHorizontal: 20, // 增大按钮内边距
   borderRadius: 20,
   backgroundColor: "#F0F0F0",
   alignItems: "center",
+  minHeight: 56, // 设置最小高度，确保足够的触控区域
 }
 
 const $primaryAction: ViewStyle = {
@@ -499,7 +500,7 @@ const $primaryAction: ViewStyle = {
 }
 
 const $actionButtonText: TextStyle = {
-  fontSize: 14,
+  fontSize: 18, // 增大按钮文字
   fontWeight: "600",
   color: "#666",
 }
