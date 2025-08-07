@@ -4,6 +4,7 @@ import java.sql.Timestamp;
 import java.util.Set;
 
 import com.Koko.app.domain.enumeration.EventStatus;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -59,7 +60,7 @@ public class Event {
     private EventStatus status = EventStatus.ACTIVE;
 
     // Event creator/organizer
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "organizer_id", nullable = false)
     private Profile organizer;
 
@@ -82,12 +83,8 @@ public class Event {
     @Column(name = "updated_at")
     private Timestamp updatedAt;
 
-    // Age restrictions
-    @Column(name = "min_age")
-    private Integer minAge;
+    private String duration;
 
-    @Column(name = "max_age")
-    private Integer maxAge;
 
     // Constructors
     public Event() {
@@ -234,23 +231,6 @@ public class Event {
         this.updatedAt = updatedAt;
     }
 
-    public Integer getMinAge() {
-        return minAge;
-    }
-
-    public void setMinAge(Integer minAge) {
-        this.minAge = minAge;
-    }
-
-    public Integer getMaxAge() {
-        return maxAge;
-    }
-
-    public void setMaxAge(Integer maxAge) {
-        this.maxAge = maxAge;
-    }
-
-
     // Utility methods
     public boolean isFull() {
         return maxParticipants != null && currentParticipants >= maxParticipants;
@@ -284,6 +264,14 @@ public class Event {
 
     public boolean isParticipant(Profile profile) {
         return participants.contains(profile);
+    }
+
+    public String getDuration() {
+        return duration;
+    }
+
+    public void setDuration(String duration) {
+        this.duration = duration;
     }
 }
 

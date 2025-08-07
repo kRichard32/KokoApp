@@ -44,6 +44,7 @@ export const IncomingCallScreen: FC<IncomingCallScreenProps> = ({ navigation, ro
     // Navigate to video call as receiver
     navigation.replace("VideoCall", {
       conversationId,
+      userId: "",
       isInitiator: false
     })
   }

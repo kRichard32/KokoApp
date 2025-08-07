@@ -23,7 +23,7 @@ public class EventService {
      * Get all active events
      */
     public List<Event> getAllActiveEvents() {
-        return eventRepository.findByStatusOrderByEventDateAsc("ACTIVE");
+        return eventRepository.findByStatusOrderByEventDateAsc(EventStatus.valueOf("ACTIVE"));
     }
 
     /**

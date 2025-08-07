@@ -31,13 +31,7 @@ public class ReminderService {
         return reminderRepository.save(reminder);
     }
 
-    /**
-     * Update an existing reminder
-     */
-    public Reminder updateReminder(Reminder reminder) {
-        reminder.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
-        return reminderRepository.save(reminder);
-    }
+
 
     /**
      * Get all reminders for a user
@@ -193,8 +187,7 @@ public class ReminderService {
             reminder.setReminderDate(new Timestamp(snoozeTime));
             reminder.setStatus(ReminderStatus.SNOOZED);
             reminder.setNotificationSent(false); // Reset notification flag
-            reminder.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
-            
+
             return reminderRepository.save(reminder);
         }
         throw new RuntimeException("Reminder not found or access denied");

@@ -16,17 +16,11 @@ public class ReminderTransfer {
     private ReminderPriority priority;
     private ReminderStatus status;
     private Long userId;
-    private String userFirstName;
-    private String userLastName;
     private Long relatedEventId;
-    private String relatedEventTitle;
     private Boolean isRecurring;
     private RecurrenceType recurrenceType;
     private String location;
     private Boolean notificationSent;
-    private Timestamp createdAt;
-    private Timestamp updatedAt;
-    private Timestamp completedAt;
 
     // Default constructor
     public ReminderTransfer() {}
@@ -47,8 +41,7 @@ public class ReminderTransfer {
                            Long userId, String userFirstName, String userLastName,
                            Long relatedEventId, String relatedEventTitle,
                            Boolean isRecurring, RecurrenceType recurrenceType,
-                           String location, Boolean notificationSent,
-                           Timestamp createdAt, Timestamp updatedAt, Timestamp completedAt) {
+                           String location, Boolean notificationSent) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -57,17 +50,11 @@ public class ReminderTransfer {
         this.priority = priority;
         this.status = status;
         this.userId = userId;
-        this.userFirstName = userFirstName;
-        this.userLastName = userLastName;
         this.relatedEventId = relatedEventId;
-        this.relatedEventTitle = relatedEventTitle;
         this.isRecurring = isRecurring;
         this.recurrenceType = recurrenceType;
         this.location = location;
         this.notificationSent = notificationSent;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.completedAt = completedAt;
     }
 
     // Getters and Setters
@@ -135,21 +122,6 @@ public class ReminderTransfer {
         this.userId = userId;
     }
 
-    public String getUserFirstName() {
-        return userFirstName;
-    }
-
-    public void setUserFirstName(String userFirstName) {
-        this.userFirstName = userFirstName;
-    }
-
-    public String getUserLastName() {
-        return userLastName;
-    }
-
-    public void setUserLastName(String userLastName) {
-        this.userLastName = userLastName;
-    }
 
     public Long getRelatedEventId() {
         return relatedEventId;
@@ -157,14 +129,6 @@ public class ReminderTransfer {
 
     public void setRelatedEventId(Long relatedEventId) {
         this.relatedEventId = relatedEventId;
-    }
-
-    public String getRelatedEventTitle() {
-        return relatedEventTitle;
-    }
-
-    public void setRelatedEventTitle(String relatedEventTitle) {
-        this.relatedEventTitle = relatedEventTitle;
     }
 
     public Boolean getIsRecurring() {
@@ -199,37 +163,6 @@ public class ReminderTransfer {
         this.notificationSent = notificationSent;
     }
 
-    public Timestamp getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Timestamp createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Timestamp getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Timestamp updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public Timestamp getCompletedAt() {
-        return completedAt;
-    }
-
-    public void setCompletedAt(Timestamp completedAt) {
-        this.completedAt = completedAt;
-    }
-
-    // Utility methods
-    public String getFullUserName() {
-        if (userFirstName != null && userLastName != null) {
-            return userFirstName + " " + userLastName;
-        }
-        return userFirstName != null ? userFirstName : "";
-    }
 
     public boolean isOverdue() {
         if (status == ReminderStatus.COMPLETED || status == ReminderStatus.CANCELLED) {

@@ -1,4 +1,4 @@
-{"ChatScreen": [
+{ "ChatScreen": [
     "message",
     "speak",
     "text",
@@ -25,7 +25,8 @@
     "Facebook",
     "iMessage",
     "SMS"
-  ], "FriendScreen": ["friends",
+  ],
+  "FriendScreen": ["friends",
     "friendship",
     "befriend",
     "buddy",
@@ -62,4 +63,45 @@
     "outgoing",
     "friendly",
     "approachable",
-    "welcoming"]  }
+    "welcoming"],
+"EventScreen": [
+  "events",
+  "event",
+  "calendar",
+  "schedule",
+  "meetup",
+  "gathering",
+  "party",
+  "club",
+  "activity",
+  "festival",
+  "fair",
+  "show",
+  "exhibition",
+  "workshop",
+  "seminar",
+  "conference",
+  "celebration",
+  "appointment",
+  "outing",
+  "session"
+],
+"ReminderScreen":  [
+  "reminder",
+  "reminders",
+  "alarm",
+  "alert",
+  "notify",
+  "notification",
+  "schedule",
+  "task",
+  "todo",
+  "medicine",
+  "medication",
+  "pill",
+  "appointment",
+  "deadline",
+  "meeting",
+  "event",
+  "timer"
+]}

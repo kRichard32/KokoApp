@@ -2,6 +2,7 @@ package com.Koko.app.repositories;
 
 import com.Koko.app.domain.Event;
 import com.Koko.app.domain.Profile;
+import com.Koko.app.domain.enumeration.EventStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,7 +16,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     /**
      * Find all active events
      */
-    List<Event> findByStatusOrderByEventDateAsc(String status);
+    List<Event> findByStatusOrderByEventDateAsc(EventStatus status);
     
     /**
      * Find events by organizer
@@ -67,10 +68,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     /**
      * Find events by age range
      */
-    @Query("SELECT e FROM Event e WHERE e.status = :status AND " +
-           "(:userAge >= e.minAge OR e.minAge IS NULL) AND " +
-           "(:userAge <= e.maxAge OR e.maxAge IS NULL) " +
-           "ORDER BY e.eventDate ASC")
+    @Query("SELECT e FROM Event e WHERE e.status = :status ORDER BY e.eventDate ASC")
     List<Event> findEventsByAgeRange(@Param("userAge") Integer userAge, @Param("status") String status);
     
     /**

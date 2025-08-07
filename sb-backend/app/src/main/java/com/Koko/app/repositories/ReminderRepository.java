@@ -74,6 +74,6 @@ public interface ReminderRepository extends JpaRepository<Reminder, Long> {
     
     // Delete completed reminders older than specified date
     @Modifying
-    @Query("DELETE FROM Reminder r WHERE r.status = 'COMPLETED' AND r.completedAt < :cutoffDate")
+    @Query("DELETE FROM Reminder r WHERE r.status = 'COMPLETED'")
     void deleteOldCompletedReminders(@Param("cutoffDate") Timestamp cutoffDate);
 }

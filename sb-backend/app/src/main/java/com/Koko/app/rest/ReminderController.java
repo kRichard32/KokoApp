@@ -52,7 +52,7 @@ public class ReminderController {
     /**
      * Create a new reminder
      */
-    @PostMapping
+    @PostMapping("/create")
     public ResponseEntity<Map<String, Object>> createReminder(
             @RequestBody ReminderTransfer reminderTransfer,
             @CookieValue(value = "token", required = false) String token) {
@@ -105,7 +105,7 @@ public class ReminderController {
     /**
      * Get all reminders for the authenticated user
      */
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<List<ReminderTransfer>> getAllReminders(
             @CookieValue(value = "token", required = false) String token) {
         
@@ -212,13 +212,10 @@ public class ReminderController {
                 reminder.setRecurrenceType(reminderTransfer.getRecurrenceType());
             }
 
-            Reminder updatedReminder = reminderService.updateReminder(reminder);
-            ReminderTransfer response = convertToTransfer(updatedReminder);
-
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
             result.put("message", "Reminder updated successfully");
-            result.put("reminder", response);
+            result.put("reminder", reminder);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();
@@ -606,28 +603,15 @@ public class ReminderController {
         transfer.setRecurrenceType(reminder.getRecurrenceType());
         transfer.setLocation(reminder.getLocation());
         transfer.setNotificationSent(reminder.getNotificationSent());
-        transfer.setCreatedAt(reminder.getCreatedAt());
-        transfer.setUpdatedAt(reminder.getUpdatedAt());
-        transfer.setCompletedAt(reminder.getCompletedAt());
 
         // Set user information
         if (reminder.getUser() != null) {
             transfer.setUserId(reminder.getUser().getId());
-            // Profile uses getName() method, split it for first/last name display
-            String fullName = reminder.getUser().getName();
-            if (fullName != null) {
-                String[] nameParts = fullName.split(" ", 2);
-                transfer.setUserFirstName(nameParts[0]);
-                if (nameParts.length > 1) {
-                    transfer.setUserLastName(nameParts[1]);
-                }
-            }
         }
 
         // Set related event information
         if (reminder.getRelatedEvent() != null) {
             transfer.setRelatedEventId(reminder.getRelatedEvent().getId());
-            transfer.setRelatedEventTitle(reminder.getRelatedEvent().getTitle());
         }
 
         return transfer;

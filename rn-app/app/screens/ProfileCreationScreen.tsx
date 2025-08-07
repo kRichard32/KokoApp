@@ -17,6 +17,7 @@ import type { AppStackScreenProps } from "@/navigators/AppNavigator"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
+
 const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL;
 
 interface ProfileCreationScreenProps extends AppStackScreenProps<"ProfileCreation"> {}

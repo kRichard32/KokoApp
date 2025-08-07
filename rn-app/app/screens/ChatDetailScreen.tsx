@@ -200,6 +200,11 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
           const latestMessage = formattedMessages[formattedMessages.length - 1];
           setLastMessageTimestamp(latestMessage.timestamp.toISOString());
         }
+        
+        // 滚动到底部显示最新消息
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: false });
+        }, 100);
       }
       
     } catch (error) {
@@ -235,6 +240,11 @@ export const ChatDetailScreen: FC<ChatDetailScreenProps> = ({ navigation, route 
 
       setContact(mockContact)
       setMessages(mockMessages)
+      
+      // 滚动到底部显示最新消息
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: false });
+      }, 100);
     }
   }
 

@@ -5,12 +5,14 @@ import com.Koko.app.domain.Event;
 import com.Koko.app.domain.Profile;
 import com.Koko.app.domain.enumeration.EventStatus;
 import com.Koko.app.service.EventService;
+import com.Koko.app.service.GoogleDriveFileService;
 import com.Koko.app.service.JwtService;
 import com.Koko.app.service.ProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
@@ -31,10 +33,13 @@ public class EventController {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private GoogleDriveFileService googleDriveFileService;
+
     /**
      * Get all active events
      */
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<List<Event>> getAllEvents() {
         try {
             List<Event> events = eventService.getAllActiveEvents();
@@ -124,9 +129,8 @@ public class EventController {
             event.setLatitude(request.getLatitude());
             event.setLongitude(request.getLongitude());
             event.setMaxParticipants(request.getMaxParticipants());
+            event.setDuration(request.getDuration());
             event.setEventType(request.getEventType()); // Fix: should be setEventType
-            event.setMinAge(request.getMinAge());
-            event.setMaxAge(request.getMaxAge());
             event.setOrganizer(organizer);
 
             Event savedEvent = eventService.save(event);
@@ -143,6 +147,56 @@ public class EventController {
         }
     }
 
+    @PutMapping("/{id}/setEventPicture")
+    public ResponseEntity<Map<String, Object>> setEventPicture(
+            @PathVariable long id,
+            @CookieValue(value = "token", required = false) String token,
+            @RequestPart MultipartFile picture) {
+        try {
+            Map<String, Object> userInfo = jwtService.decodeIdToken(token);
+            Profile currentUser = profileService.getProfileByEmail((String) userInfo.get("email"));
+
+            Optional<Event> eventOpt = eventService.getEventById(id);
+            if (eventOpt.isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("error", "Event not found");
+                return ResponseEntity.notFound().build();
+            }
+
+            Event event = eventOpt.get();
+
+            // Only organizer can update the event
+            if (!event.isOrganizer(currentUser)) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("error", "Only the organizer can update this event");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            String picturePath = googleDriveFileService.do_POST(picture);
+            // Update fields if provided
+            event.setImageFileId(picturePath);
+            Event savedEvent = eventService.save(event);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Event picture set successfully");
+            response.put("event", savedEvent);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Failed to set event picture: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+    }
+    @GetMapping("/{id}/getEventPicture")
+    public byte[] getEventPicture(
+            @PathVariable long id) {
+
+        Event event = eventService.getEventById(id).orElse(null);
+        if (event == null || event.getImageFileId() == null) {
+            return null;
+        }
+        return googleDriveFileService.do_GET(event.getImageFileId());
+    }
     /**
      * Update an existing event
      */
@@ -180,10 +234,8 @@ public class EventController {
             if (request.getLongitude() != null) event.setLongitude(request.getLongitude());
             if (request.getMaxParticipants() != null) event.setMaxParticipants(request.getMaxParticipants());
             if (request.getEventType() != null) event.setEventType(request.getEventType());
-            if (request.getMinAge() != null) event.setMinAge(request.getMinAge());
-            if (request.getMaxAge() != null) event.setMaxAge(request.getMaxAge());
             if (request.getStatus() != null) event.setStatus(EventStatus.valueOf(request.getStatus()));
-
+            if (request.getDuration() != null) event.setDuration(request.getDuration());
             Event savedEvent = eventService.save(event);
 
             Map<String, Object> response = new HashMap<>();

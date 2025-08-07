@@ -584,7 +584,13 @@ export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route })
       })
     }
     cleanup()
-    navigation.goBack()
+    if (navigation.canGoBack()) {
+      navigation.goBack()
+    } else {
+      // Handle case where there's nowhere to go back to
+      navigation.navigate("Home")
+      console.log('Already at root screen')
+    }
   }
 
   // 切换静音

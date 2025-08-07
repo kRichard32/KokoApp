@@ -73,11 +73,6 @@ public class Reminder {
     @Column(name = "created_at", nullable = false)
     private Timestamp createdAt;
 
-    @Column(name = "updated_at")
-    private Timestamp updatedAt;
-
-    @Column(name = "completed_at")
-    private Timestamp completedAt;
 
     // Constructors
     public Reminder() {
@@ -152,11 +147,6 @@ public class Reminder {
 
     public void setStatus(ReminderStatus status) {
         this.status = status;
-        this.updatedAt = new Timestamp(System.currentTimeMillis());
-        
-        if (status == ReminderStatus.COMPLETED && this.completedAt == null) {
-            this.completedAt = new Timestamp(System.currentTimeMillis());
-        }
     }
 
     public Profile getUser() {
@@ -215,21 +205,6 @@ public class Reminder {
         this.createdAt = createdAt;
     }
 
-    public Timestamp getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Timestamp updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public Timestamp getCompletedAt() {
-        return completedAt;
-    }
-
-    public void setCompletedAt(Timestamp completedAt) {
-        this.completedAt = completedAt;
-    }
 
     // Utility methods
     public boolean isOverdue() {
@@ -264,13 +239,10 @@ public class Reminder {
 
     public void markAsCompleted() {
         this.status = ReminderStatus.COMPLETED;
-        this.completedAt = new Timestamp(System.currentTimeMillis());
-        this.updatedAt = new Timestamp(System.currentTimeMillis());
     }
 
     public void markAsCancelled() {
         this.status = ReminderStatus.CANCELLED;
-        this.updatedAt = new Timestamp(System.currentTimeMillis());
     }
 
     public boolean belongsToUser(Profile user) {

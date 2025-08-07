@@ -10,7 +10,9 @@ import {
   FlatList,
   ListRenderItem,
   ScrollView,
+  Alert,
 } from "react-native"
+import axios from "axios"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -18,23 +20,25 @@ import type { AppStackScreenProps } from "@/navigators/AppNavigator"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
+const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL
+
 // 活动数据类型
-interface VirtualEvent {
+interface Event {
   id: string
   title: string
   description: string
-  category: string
-  date: string
-  time: string
-  duration: string
-  participantCount: number
+  eventDate: number // timestamp
+  location: string
   maxParticipants: number
-  hostName: string
-  hostAvatar: string
-  image: string
-  isJoined: boolean
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced'
-  tags: string[]
+  eventType: string // "VIRTUAL" or "PHYSICAL"
+  status: string
+  participantCount?: number // optional for display
+  hostName?: string // optional for display
+  hostAvatar?: string // optional for display
+  image?: string // optional for display
+  isJoined?: boolean // optional for display
+  category?: string // derived from tags or separate field
+  tags?: string[] // optional for display
 }
 
 interface EventsScreenProps extends AppStackScreenProps<"Events"> {}
@@ -45,8 +49,9 @@ export const EventsScreen: FC<EventsScreenProps> = ({ navigation }) => {
     theme: { colors, spacing },
   } = useAppTheme()
 
-  const [events, setEvents] = useState<VirtualEvent[]>([])
+  const [events, setEvents] = useState<Event[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>("All")
+  const [isLoading, setIsLoading] = useState(false)
 
   // 活动分类
   const categories = [
@@ -59,101 +64,126 @@ export const EventsScreen: FC<EventsScreenProps> = ({ navigation }) => {
     { key: "Music", emoji: "🎵", name: "Music" },
   ]
 
-  // 模拟数据加载
+  // 加载事件数据
   useEffect(() => {
-    loadMockEvents()
+    loadEvents()
+    
+    // Cleanup function to revoke blob URLs when component unmounts
+    return () => {
+      events.forEach(event => {
+        if (event.image && event.image.startsWith('blob:')) {
+          URL.revokeObjectURL(event.image)
+        }
+        if (event.hostAvatar && event.hostAvatar.startsWith('blob:')) {
+          URL.revokeObjectURL(event.hostAvatar)
+        }
+      })
+    }
   }, [])
 
-  const loadMockEvents = () => {
-    const mockEvents: VirtualEvent[] = [
-      {
-        id: "1",
-        title: "Virtual Fishing Stories & Tips",
-        description: "Share your best fishing stories and learn new techniques from fellow anglers. Join us for a relaxing virtual fishing session!",
-        category: "Fishing",
-        date: "2024-01-20",
-        time: "2:00 PM",
-        duration: "1.5 hours",
-        participantCount: 12,
-        maxParticipants: 20,
-        hostName: "Robert Chen",
-        hostAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-        image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=200&fit=crop",
-        isJoined: false,
-        difficulty: "Beginner",
-        tags: ["Relaxing", "Social", "Learning"]
-      },
-      {
-        id: "2",
-        title: "Morning Garden Chat",
-        description: "Start your day with fellow gardening enthusiasts. Share what's blooming in your garden and get advice on seasonal care.",
-        category: "Gardening",
-        date: "2024-01-21",
-        time: "9:00 AM",
-        duration: "1 hour",
-        participantCount: 8,
-        maxParticipants: 15,
-        hostName: "Margaret Johnson",
-        hostAvatar: "https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?w=100&h=100&fit=crop&crop=face",
-        image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=200&fit=crop",
-        isJoined: true,
-        difficulty: "Beginner",
-        tags: ["Morning", "Plants", "Tips"]
-      },
-      {
-        id: "3",
-        title: "Classic Literature Discussion",
-        description: "This week we're discussing 'To Kill a Mockingbird'. Join us for thoughtful conversation and different perspectives.",
-        category: "Reading",
-        date: "2024-01-22",
-        time: "7:00 PM",
-        duration: "2 hours",
-        participantCount: 15,
-        maxParticipants: 25,
-        hostName: "Eleanor Smith",
-        hostAvatar: "https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=100&h=100&fit=crop&crop=face",
-        image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=200&fit=crop",
-        isJoined: false,
-        difficulty: "Intermediate",
-        tags: ["Discussion", "Classic", "Thoughtful"]
-      },
-      {
-        id: "4",
-        title: "Easy Comfort Food Cooking",
-        description: "Learn to make delicious, simple comfort foods perfect for any day. We'll cook together step by step!",
-        category: "Cooking",
-        date: "2024-01-23",
-        time: "11:00 AM",
-        duration: "2.5 hours",
-        participantCount: 6,
-        maxParticipants: 12,
-        hostName: "Maria Rodriguez",
-        hostAvatar: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=100&h=100&fit=crop&crop=face",
-        image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=200&fit=crop",
-        isJoined: true,
-        difficulty: "Beginner",
-        tags: ["Cooking", "Easy", "Delicious"]
-      },
-      {
-        id: "5",
-        title: "Watercolor Painting Circle",
-        description: "Paint along with us in this relaxing watercolor session. All skill levels welcome - just bring your creativity!",
-        category: "Arts",
-        date: "2024-01-24",
-        time: "3:00 PM",
-        duration: "2 hours",
-        participantCount: 10,
-        maxParticipants: 18,
-        hostName: "David Kim",
-        hostAvatar: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=100&h=100&fit=crop&crop=face",
-        image: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=200&fit=crop",
-        isJoined: false,
-        difficulty: "Beginner",
-        tags: ["Creative", "Relaxing", "Art"]
-      }
-    ]
+  const loadEvents = async () => {
+    setIsLoading(true)
+    try {
+      console.log('Fetching events from:', `${serverUrl}/api/events/all`)
+      const response = await axios.get(`${serverUrl}/api/events/all`, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
 
-    setEvents(mockEvents)
+      console.log('Events response:', response.data)
+      
+      if (response.data && Array.isArray(response.data)) {
+        // Transform API data and fetch additional images
+        const transformedEventsPromises = response.data.map(async (event: any) => {
+          let eventImage = "https://images.unsplash.com/photo-1511578314322-379afb476865?w=400&h=200&fit=crop" // default image
+          let hostAvatar = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face" // default avatar
+
+          // Fetch event picture
+          try {
+            console.log(`Fetching event picture for event ${event.id}`)
+            const eventImageResponse = await axios.get(`${serverUrl}/api/events/${event.id}/getEventPicture`, {
+              withCredentials: true,
+              responseType: 'arraybuffer',
+            })
+            
+            if (eventImageResponse.data) {
+              // Convert byte array to base64
+              const base64String = btoa(
+                new Uint8Array(eventImageResponse.data).reduce((data, byte) => data + String.fromCharCode(byte), '')
+              )
+              
+              // Create data URI
+              eventImage = `data:image/jpeg;base64,${base64String}`
+            }
+          } catch (imageError) {
+            console.warn(`Failed to fetch event image for event ${event.id}:`, imageError)
+            // Keep default image
+          }
+
+          // Fetch host profile picture
+          try {
+            if (event.organizer?.id) {
+              console.log(`Fetching profile picture for host ${event.organizer.id}`)
+              const hostImageResponse = await axios.get(`${serverUrl}/api/profile/getProfilePicture`, {
+                withCredentials: true,
+                params: { id: event.organizer.id },
+                responseType: 'arraybuffer',
+              })
+              
+              if (hostImageResponse.data) {
+                const base64String = btoa(
+                new Uint8Array(hostImageResponse.data).reduce((data, byte) => data + String.fromCharCode(byte), '')
+              )
+                hostAvatar = `data:image/jpeg;base64,${base64String}`
+              }
+            }
+          } catch (avatarError) {
+            console.warn(`Failed to fetch host avatar for host ${event.organizer?.id}:`, avatarError)
+            // Keep default avatar
+          }
+          console.log(event.eventType)
+          return {
+            ...event,
+            id: event.id,
+            title: event.title,
+            description: event.description,
+            eventDate: event.eventDate,
+            location: event.location,
+            participantCount: event.currentParticipants,
+            maxParticipants: event.maxParticipants,
+            category: event.eventType,
+            status: event.status,
+            hostName: event.organizer?.name || "Event Host",
+            hostId: event.organizer?.id,
+            hostAvatar: hostAvatar,
+            image: eventImage,
+            duration: event.duration || "1 hour",
+            isJoined: false, // Default to false
+            tags: event.tags || [],
+          }
+        })
+
+        // Wait for all image fetches to complete
+        const transformedEvents = await Promise.all(transformedEventsPromises)
+        setEvents(transformedEvents)
+      } else {
+        setEvents([])
+      }
+    } catch (error: any) {
+      console.error('Error loading events:', error)
+      Alert.alert(
+        "Error",
+        "Failed to load events. Please check your connection and try again.",
+        [
+          { text: "Retry", onPress: loadEvents },
+          { text: "Cancel", style: "cancel" }
+        ]
+      )
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // 过滤活动
@@ -169,11 +199,27 @@ export const EventsScreen: FC<EventsScreenProps> = ({ navigation }) => {
             ...event, 
             isJoined: !event.isJoined,
             participantCount: event.isJoined 
-              ? event.participantCount - 1 
-              : event.participantCount + 1
+              ? (event.participantCount || 0) - 1 
+              : (event.participantCount || 0) + 1
           }
         : event
     ))
+  }
+
+  // Helper function to format timestamp to date and time
+  const formatEventDateTime = (timestamp: number) => {
+    const date = new Date(timestamp)
+    const dateStr = date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit' 
+    })
+    const timeStr = date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    })
+    return { dateStr, timeStr }
   }
 
   // 渲染分类按钮
@@ -200,85 +246,103 @@ export const EventsScreen: FC<EventsScreenProps> = ({ navigation }) => {
   )
 
   // 渲染活动卡片
-  const renderEvent: ListRenderItem<VirtualEvent> = ({ item }) => (
-    <View style={$eventCard}>
-      <Image 
-        source={{ uri: item.image }}
-        style={$eventImage}
-        defaultSource={require("../../assets/images/avatar-placeholder.jpg")}
-      />
-      
-      <View style={$eventContent}>
-        {/* 活动标题和难度 */}
-        <View style={$eventHeader}>
-          <Text style={$eventTitle} numberOfLines={2}>{item.title}</Text>
-          <View style={$difficultyBadge}>
-            <Text style={$difficultyText}>{item.difficulty}</Text>
-          </View>
-        </View>
-
-        {/* 活动描述 */}
-        <Text style={$eventDescription} numberOfLines={3}>{item.description}</Text>
-
-        {/* 标签 */}
-        <View style={$tagsContainer}>
-          {item.tags.map((tag, index) => (
-            <View key={index} style={$tag}>
-              <Text style={$tagText}>{tag}</Text>
+  const renderEvent: ListRenderItem<Event> = ({ item }) => {
+    const { dateStr, timeStr } = formatEventDateTime(item.eventDate)
+    const participantCount = item.participantCount || 0
+    const isJoined = item.isJoined || false
+    const tags = item.tags || []
+    const categoryMap = Object.fromEntries(
+      categories.map(cat => [cat.key, cat])
+    )
+    return (
+      <View style={$eventCard}>
+        <Image 
+          source={{ uri: item.image }}
+          style={$eventImage}
+          defaultSource={require("../../assets/images/avatar-placeholder.jpg")}
+        />
+        
+        <View style={$eventContent}>
+          {/* 活动标题 */}
+          <View style={$eventHeader}>
+            <Text style={$eventTitle} numberOfLines={2}>{item.title}</Text>
+            <View style={$categoryBadge}>
+              <Text style={$categoryBadgeText}>
+                {categoryMap[item.category as keyof typeof categoryMap]?.emoji} {categoryMap[item.category as keyof typeof categoryMap]?.name}
+              </Text>
             </View>
-          ))}
-        </View>
-
-        {/* 时间和参与者信息 */}
-        <View style={$eventInfo}>
-          <View style={$timeInfo}>
-            <Text style={$eventDate}>📅 {item.date}</Text>
-            <Text style={$eventTime}>🕐 {item.time} ({item.duration})</Text>
           </View>
-          <Text style={$participantInfo}>
-            👥 {item.participantCount}/{item.maxParticipants} joined
-          </Text>
-        </View>
 
-        {/* 主持人信息 */}
-        <View style={$hostInfo}>
-          <Image 
-            source={{ uri: item.hostAvatar }}
-            style={$hostAvatar}
-            defaultSource={require("../../assets/images/avatar-placeholder.jpg")}
-          />
-          <Text style={$hostText}>Hosted by {item.hostName}</Text>
-        </View>
+          {/* 活动描述 */}
+          <Text style={$eventDescription} numberOfLines={3}>{item.description}</Text>
 
-        {/* 加入按钮 */}
-        <Pressable
-          style={[
-            $joinButton,
-            item.isJoined && $joinedButton,
-            item.participantCount >= item.maxParticipants && !item.isJoined && $fullButton
-          ]}
-          onPress={() => toggleJoinEvent(item.id)}
-          disabled={item.participantCount >= item.maxParticipants && !item.isJoined}
-          accessible
-          accessibilityRole="button"
-          accessibilityLabel={item.isJoined ? "Leave event" : "Join event"}
-        >
-          <Text style={[
-            $joinButtonText,
-            item.isJoined && $joinedButtonText,
-            item.participantCount >= item.maxParticipants && !item.isJoined && $fullButtonText
-          ]}>
-            {item.participantCount >= item.maxParticipants && !item.isJoined 
-              ? "Event Full" 
-              : item.isJoined 
-                ? "✓ Joined" 
-                : "Join Event"
-            }
-          </Text>
-        </Pressable>
+          {/* 标签 */}
+          {tags.length > 0 && (
+            <View style={$tagsContainer}>
+              {tags.map((tag: string, index: number) => (
+                <View key={index} style={$tag}>
+                  <Text style={$tagText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* 时间、地点和参与者信息 */}
+          <View style={$eventInfo}>
+            <View style={$timeInfo}>
+              <Text style={$eventDate}>📅 {dateStr}</Text>
+              <Text style={$eventTime}>🕐 {timeStr}</Text>
+              <Text style={$eventLocation}>
+                {item.eventType === "VIRTUAL" ? "🌐" : "📍"} {item.location}
+              </Text>
+            </View>
+            <Text style={$participantInfo}>
+              👥 {participantCount}/{item.maxParticipants} joined
+            </Text>
+          </View>
+
+          {/* 主持人信息 */}
+          {item.hostName && (
+            <View style={$hostInfo}>
+              <Image 
+                source={{ uri: item.hostAvatar }}
+                style={$hostAvatar}
+                defaultSource={require("../../assets/images/avatar-placeholder.jpg")}
+              />
+              <Text style={$hostText}>Hosted by {item.hostName}</Text>
+            </View>
+          )}
+
+          {/* 加入按钮 */}
+          <Pressable
+            style={[
+              $joinButton,
+              isJoined && $joinedButton,
+              participantCount >= item.maxParticipants && !isJoined && $fullButton
+            ]}
+            onPress={() => toggleJoinEvent(item.id)}
+            disabled={participantCount >= item.maxParticipants && !isJoined}
+            accessible
+            accessibilityRole="button"
+            accessibilityLabel={isJoined ? "Leave event" : "Join event"}
+          >
+            <Text style={[
+              $joinButtonText,
+              isJoined && $joinedButtonText,
+              participantCount >= item.maxParticipants && !isJoined && $fullButtonText
+            ]}>
+              {participantCount >= item.maxParticipants && !isJoined 
+                ? "Event Full" 
+                : isJoined 
+                  ? "✓ Joined" 
+                  : "Join Event"
+              }
+            </Text>
+          </Pressable>
+        </View>
       </View>
-    </View>
-  )
+    )
+  }
 
   return (
     <Screen
@@ -298,9 +362,17 @@ export const EventsScreen: FC<EventsScreenProps> = ({ navigation }) => {
           <Text style={$backIcon}>←</Text>
         </Pressable>
         
-        <Text style={$headerTitle}>Virtual Events</Text>
+        <Text style={$headerTitle}>Events</Text>
         
-        <View style={$headerSpacer} />
+        <Pressable
+          onPress={() => navigation.navigate("CreateEvent")}
+          style={$createButton}
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel="Create new event"
+        >
+          <Text style={$createButtonText}>+</Text>
+        </Pressable>
       </View>
 
       {/* 分类选择 */}
@@ -314,15 +386,33 @@ export const EventsScreen: FC<EventsScreenProps> = ({ navigation }) => {
       </ScrollView>
 
       {/* 活动列表 */}
-      <FlatList
-        data={filteredEvents}
-        renderItem={renderEvent}
-        keyExtractor={(item) => item.id}
-        style={$eventsList}
-        contentContainerStyle={$eventsContent}
-        showsVerticalScrollIndicator={false}
-        ItemSeparatorComponent={() => <View style={$eventSeparator} />}
-      />
+      {isLoading ? (
+        <View style={$loadingContainer}>
+          <Text style={$loadingText}>Loading events...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredEvents}
+          renderItem={renderEvent}
+          keyExtractor={(item) => item.id}
+          style={$eventsList}
+          contentContainerStyle={$eventsContent}
+          showsVerticalScrollIndicator={false}
+          ItemSeparatorComponent={() => <View style={$eventSeparator} />}
+          ListEmptyComponent={
+            <View style={$emptyContainer}>
+              <Text style={$emptyText}>No events found</Text>
+              <Text style={$emptySubtext}>
+                {selectedCategory === "All" 
+                  ? "Create your first event to get started!" 
+                  : `No events found in ${selectedCategory} category`}
+              </Text>
+            </View>
+          }
+          refreshing={isLoading}
+          onRefresh={loadEvents}
+        />
+      )}
     </Screen>
   )
 }
@@ -363,6 +453,29 @@ const $headerTitle: TextStyle = {
 
 const $headerSpacer: ViewStyle = {
   width: 40,
+}
+
+const $createButton: ViewStyle = {
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+  backgroundColor: "#4CAF50",
+  alignItems: "center",
+  justifyContent: "center",
+  shadowColor: "#000",
+  shadowOffset: {
+    width: 0,
+    height: 2,
+  },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  elevation: 2,
+}
+
+const $createButtonText: TextStyle = {
+  fontSize: 24,
+  fontWeight: "bold",
+  color: "#FFFFFF",
 }
 
 const $categoriesContainer: ViewStyle = {
@@ -451,6 +564,22 @@ const $eventHeader: ViewStyle = {
   marginBottom: 16, // 增大间距
 }
 
+const $categoryBadge: ViewStyle = {
+  backgroundColor: "#E3F2FD",
+  paddingHorizontal: 12,
+  paddingVertical: 6,
+  borderRadius: 12,
+  borderWidth: 1,
+  borderColor: "#2196F3",
+  marginLeft: 8,
+}
+
+const $categoryBadgeText: TextStyle = {
+  fontSize: 14,
+  fontWeight: "600",
+  color: "#2196F3",
+}
+
 const $eventTitle: TextStyle = {
   fontSize: 22, // 增大字体 18->22
   fontWeight: "700",
@@ -523,6 +652,13 @@ const $eventTime: TextStyle = {
   fontWeight: "500",
 }
 
+const $eventLocation: TextStyle = {
+  fontSize: 18,
+  color: "#444",
+  fontWeight: "500",
+  marginTop: 6,
+}
+
 const $participantInfo: TextStyle = {
   fontSize: 18, // 增大字体 14->18
   color: "#666",
@@ -585,4 +721,40 @@ const $joinedButtonText: TextStyle = {
 
 const $fullButtonText: TextStyle = {
   color: "#999",
+}
+
+const $loadingContainer: ViewStyle = {
+  flex: 1,
+  justifyContent: "center",
+  alignItems: "center",
+  paddingVertical: 40,
+}
+
+const $loadingText: TextStyle = {
+  fontSize: 18,
+  color: "#666",
+  fontWeight: "500",
+}
+
+const $emptyContainer: ViewStyle = {
+  flex: 1,
+  justifyContent: "center",
+  alignItems: "center",
+  paddingVertical: 40,
+  paddingHorizontal: 20,
+}
+
+const $emptyText: TextStyle = {
+  fontSize: 20,
+  fontWeight: "600",
+  color: "#666",
+  marginBottom: 8,
+  textAlign: "center",
+}
+
+const $emptySubtext: TextStyle = {
+  fontSize: 16,
+  color: "#999",
+  textAlign: "center",
+  lineHeight: 24,
 }

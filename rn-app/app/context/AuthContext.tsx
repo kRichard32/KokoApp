@@ -186,6 +186,7 @@ export const AuthProvider: FC<PropsWithChildren<AuthProviderProps>> = ({ childre
       setLoggedIn(false)
       setProfileChecked(false)
       setHasProfile(false)
+      navigateToInitialScreen()
       // Clear axios authorization header
       delete axios.defaults.headers.common['Authorization']
     }

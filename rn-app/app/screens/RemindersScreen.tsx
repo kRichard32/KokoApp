@@ -12,6 +12,7 @@ import {
   ScrollView,
   Alert,
 } from "react-native"
+import axios from "axios"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -19,20 +20,26 @@ import type { AppStackScreenProps } from "@/navigators/AppNavigator"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
-// 提醒数据类型
+const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL
+
+// 提醒数据类型 - 匹配后端结构
 interface Reminder {
   id: string
   title: string
   description: string
-  type: 'medication' | 'water' | 'exercise' | 'meal' | 'appointment' | 'other'
-  time: string
-  frequency: 'daily' | 'weekly' | 'as-needed'
-  isActive: boolean
-  nextReminder: string
-  icon: string
-  color: string
-  dosage?: string // 药物剂量
-  notes?: string
+  reminderDate: number // timestamp from backend
+  type: string // Backend enum values
+  priority: string // Backend enum values
+  isRecurring: boolean
+  recurrenceType: string // Backend enum values
+  location: string
+  status: string // Backend status (ACTIVE, COMPLETED, etc.)
+  // Display properties (computed from backend data)
+  time?: string
+  nextReminder?: string
+  icon?: string
+  color?: string
+  isActive?: boolean
 }
 
 interface RemindersScreenProps extends AppStackScreenProps<"Reminders"> {}
@@ -45,6 +52,7 @@ export const RemindersScreen: FC<RemindersScreenProps> = ({ navigation }) => {
 
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [selectedTab, setSelectedTab] = useState<'all' | 'today' | 'active'>('today')
+  const [isLoading, setIsLoading] = useState(false)
 
   // 提醒类型分类
   const reminderTypes = [
@@ -53,117 +61,121 @@ export const RemindersScreen: FC<RemindersScreenProps> = ({ navigation }) => {
     { key: 'active', emoji: '🔔', name: 'Active', color: '#FFF3E0' },
   ]
 
-  // 模拟数据加载
+  // 加载提醒数据
   useEffect(() => {
-    loadMockReminders()
+    loadReminders()
   }, [])
 
-  const loadMockReminders = () => {
-    const mockReminders: Reminder[] = [
-      {
-        id: "1",
-        title: "Take Blood Pressure Medicine",
-        description: "Take your daily blood pressure medication with water",
-        type: "medication",
-        time: "8:00 AM",
-        frequency: "daily",
-        isActive: true,
-        nextReminder: "Today at 8:00 AM",
-        icon: "💊",
-        color: "#FFE8E8",
-        dosage: "1 tablet",
-        notes: "Take with food to avoid stomach upset"
-      },
-      {
-        id: "2",
-        title: "Drink Water",
-        description: "Stay hydrated! Time for your regular water intake",
-        type: "water",
-        time: "10:00 AM",
-        frequency: "daily",
-        isActive: true,
-        nextReminder: "Today at 10:00 AM",
-        icon: "💧",
-        color: "#E3F2FD",
-        notes: "Aim for 8 glasses throughout the day"
-      },
-      {
-        id: "3",
-        title: "Take Vitamin D",
-        description: "Daily vitamin D supplement for bone health",
-        type: "medication",
-        time: "12:00 PM",
-        frequency: "daily",
-        isActive: true,
-        nextReminder: "Today at 12:00 PM",
-        icon: "🌞",
-        color: "#FFF9C4",
-        dosage: "1000 IU",
-        notes: "Best taken with lunch"
-      },
-      {
-        id: "4",
-        title: "Afternoon Walk",
-        description: "Light exercise - 15 minute walk around the neighborhood",
-        type: "exercise",
-        time: "2:00 PM",
-        frequency: "daily",
-        isActive: true,
-        nextReminder: "Today at 2:00 PM",
-        icon: "🚶‍♀️",
-        color: "#E8F5E8",
-        notes: "Weather permitting. Great for circulation!"
-      },
-      {
-        id: "5",
-        title: "Evening Medicine",
-        description: "Take your evening medications before dinner",
-        type: "medication",
-        time: "6:00 PM",
-        frequency: "daily",
-        isActive: true,
-        nextReminder: "Today at 6:00 PM",
-        icon: "💊",
-        color: "#FFE8E8",
-        dosage: "2 tablets",
-        notes: "Cholesterol medication - take 30 min before eating"
-      },
-      {
-        id: "6",
-        title: "Doctor Appointment",
-        description: "Monthly check-up with Dr. Smith",
-        type: "appointment",
-        time: "10:00 AM",
-        frequency: "weekly",
-        isActive: true,
-        nextReminder: "Tomorrow at 10:00 AM",
-        icon: "👩‍⚕️",
-        color: "#F3E5F5",
-        notes: "Bring medication list and insurance card"
-      },
-      {
-        id: "7",
-        title: "Bedtime Water",
-        description: "Final glass of water before bed",
-        type: "water",
-        time: "9:00 PM",
-        frequency: "daily",
-        isActive: false,
-        nextReminder: "Today at 9:00 PM",
-        icon: "💧",
-        color: "#E3F2FD",
-        notes: "Not too much to avoid night-time wake-ups"
-      }
-    ]
+  // 获取提醒图标和颜色
+  const getReminderDisplayInfo = (type: string, priority: string) => {
+    const typeIcons: { [key: string]: { icon: string; color: string } } = {
+      'PERSONAL': { icon: '👤', color: '#E3F2FD' },
+      'EVENT_RELATED': { icon: '🎉', color: '#E8F5E8' },
+      'APPOINTMENT': { icon: '📅', color: '#FFF3E0' },
+      'DEADLINE': { icon: '⏰', color: '#FFEBEE' },
+      'BIRTHDAY': { icon: '🎂', color: '#F3E5F5' },
+      'ANNIVERSARY': { icon: '💕', color: '#FCE4EC' },
+      'MEDICATION': { icon: '💊', color: '#FFE8E8' },
+      'MEETING': { icon: '🤝', color: '#E3F2FD' },
+      'OTHER': { icon: '📝', color: '#F5F5F5' }
+    }
+    
+    const defaultInfo = { icon: '📝', color: '#F5F5F5' }
+    return typeIcons[type] || defaultInfo
+  }
 
-    setReminders(mockReminders)
+  // 格式化日期时间
+  const formatReminderDateTime = (timestamp: number) => {
+    const date = new Date(timestamp)
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const reminderDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    
+    const timeStr = date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    })
+    
+    if (reminderDate.getTime() === today.getTime()) {
+      return `Today at ${timeStr}`
+    } else if (reminderDate.getTime() === today.getTime() + 24 * 60 * 60 * 1000) {
+      return `Tomorrow at ${timeStr}`
+    } else {
+      const dateStr = date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric' 
+      })
+      return `${dateStr} at ${timeStr}`
+    }
+  }
+
+  const loadReminders = async () => {
+    setIsLoading(true)
+    try {
+      console.log('Fetching reminders from:', `${serverUrl}/api/reminders/all`)
+      const response = await axios.get(`${serverUrl}/api/reminders/all`, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      console.log('Reminders response:', response.data)
+      
+      if (response.data && Array.isArray(response.data)) {
+        // Transform API data to include display properties
+        const transformedReminders = response.data.map((reminder: any) => {
+          const displayInfo = getReminderDisplayInfo(reminder.type, reminder.priority)
+          
+          return {
+            ...reminder,
+            id: reminder.id,
+            title: reminder.title,
+            description: reminder.description,
+            reminderDate: reminder.reminderDate,
+            type: reminder.type,
+            priority: reminder.priority,
+            isRecurring: reminder.isRecurring,
+            recurrenceType: reminder.recurrenceType,
+            location: reminder.location,
+            // Display properties
+            time: new Date(reminder.reminderDate).toLocaleTimeString('en-US', { 
+              hour: 'numeric', 
+              minute: '2-digit',
+              hour12: true 
+            }),
+            nextReminder: formatReminderDateTime(reminder.reminderDate),
+            icon: displayInfo.icon,
+            color: displayInfo.color,
+            status: reminder.status,
+            isActive: reminder.status !== 'COMPLETED' // Set inactive if status is COMPLETED
+          }
+        })
+        setReminders(transformedReminders)
+      } else {
+        setReminders([])
+      }
+    } catch (error: any) {
+      console.error('Error loading reminders:', error)
+      Alert.alert(
+        "Error",
+        "Failed to load reminders. Please check your connection and try again.",
+        [
+          { text: "Retry", onPress: loadReminders },
+          { text: "Cancel", style: "cancel" }
+        ]
+      )
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // 过滤提醒
   const filteredReminders = () => {
     switch (selectedTab) {
       case 'today':
-        return reminders.filter(r => r.nextReminder.includes('Today'))
+        return reminders.filter(r => r.nextReminder?.includes('Today'))
       case 'active':
         return reminders.filter(r => r.isActive)
       default:
@@ -181,18 +193,53 @@ export const RemindersScreen: FC<RemindersScreenProps> = ({ navigation }) => {
   }
 
   // 标记为已完成
-  const markAsCompleted = (reminderId: string) => {
+  const markAsCompleted = async (reminderId: string) => {
     const reminder = reminders.find(r => r.id === reminderId)
-    Alert.alert(
-      "Reminder Completed! ✓",
-      `Great job completing: ${reminder?.title}`,
-      [
-        {
-          text: "OK",
-          style: "default"
-        }
-      ]
-    )
+    if (!reminder) return
+
+    try {
+      console.log(`Marking reminder ${reminderId} as completed`)
+      console.log('Calling API endpoint:', `${serverUrl}/api/reminders/${reminderId}/complete`)
+      
+      const response = await axios.put(`${serverUrl}/api/reminders/${reminderId}/complete`, {}, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      console.log('Reminder completion response:', response.data)
+
+      Alert.alert(
+        "Reminder Completed! ✓",
+        `Great job completing: ${reminder.title}`,
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // Refresh the reminders list to get updated data
+              loadReminders()
+            },
+            style: "default"
+          }
+        ]
+      )
+    } catch (error: any) {
+      console.error('Error completing reminder:', error)
+      
+      let errorMessage = "Failed to mark reminder as complete. Please try again."
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
+      Alert.alert(
+        "Error",
+        errorMessage,
+        [{ text: "OK" }]
+      )
+    }
   }
 
   // 渲染标签按钮
@@ -221,14 +268,31 @@ export const RemindersScreen: FC<RemindersScreenProps> = ({ navigation }) => {
 
   // 渲染提醒卡片
   const renderReminder: ListRenderItem<Reminder> = ({ item }) => (
-    <View style={[$reminderCard, { backgroundColor: item.color }]}>
+    <View style={[
+      $reminderCard, 
+      { backgroundColor: item.color },
+      item.status === 'COMPLETED' && $reminderCardCompleted
+    ]}>
       {/* 提醒头部 */}
       <View style={$reminderHeader}>
         <View style={$reminderTitleRow}>
           <Text style={$reminderIcon}>{item.icon}</Text>
           <View style={$reminderTitleContainer}>
-            <Text style={$reminderTitle}>{item.title}</Text>
-            <Text style={$reminderTime}>⏰ {item.nextReminder}</Text>
+            <View style={$titleWithStatus}>
+              <Text style={[
+                $reminderTitle,
+                item.status === 'COMPLETED' && $reminderTitleCompleted
+              ]}>{item.title}</Text>
+              {item.status === 'COMPLETED' && (
+                <View style={$completedBadge}>
+                  <Text style={$completedBadgeText}>✓ COMPLETED</Text>
+                </View>
+              )}
+            </View>
+            <Text style={[
+              $reminderTime,
+              item.status === 'COMPLETED' && $reminderTimeCompleted
+            ]}>⏰ {item.nextReminder}</Text>
           </View>
           {/* 开关按钮 */}
           <Pressable
@@ -253,41 +317,86 @@ export const RemindersScreen: FC<RemindersScreenProps> = ({ navigation }) => {
       {/* 提醒内容 */}
       <Text style={$reminderDescription}>{item.description}</Text>
 
-      {/* 剂量信息（如果是药物） */}
-      {item.dosage && (
-        <View style={$dosageContainer}>
-          <Text style={$dosageLabel}>Dosage:</Text>
-          <Text style={$dosageText}>{item.dosage}</Text>
+      {/* 位置信息（如果有） */}
+      {item.location && (
+        <View style={$locationContainer}>
+          <Text style={$locationLabel}>📍 Location:</Text>
+          <Text style={$locationText}>{item.location}</Text>
         </View>
       )}
 
-      {/* 备注 */}
-      {item.notes && (
-        <View style={$notesContainer}>
-          <Text style={$notesText}>💡 {item.notes}</Text>
+      {/* 重复信息（如果有） */}
+      {item.isRecurring && item.recurrenceType && (
+        <View style={$recurrenceContainer}>
+          <Text style={$recurrenceLabel}>🔄 Recurring:</Text>
+          <View style={$recurrenceBadge}>
+            <Text style={$recurrenceText}>
+              {item.recurrenceType.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+            </Text>
+          </View>
         </View>
       )}
+
+      {/* 优先级指示器 */}
+      <View style={$priorityContainer}>
+        <Text style={$priorityLabel}>Priority:</Text>
+        <View style={[
+          $priorityBadge,
+          item.priority === 'URGENT' && { backgroundColor: '#F3E5F5' },
+          item.priority === 'HIGH' && { backgroundColor: '#FFEBEE' },
+          item.priority === 'MEDIUM' && { backgroundColor: '#FFF3E0' },
+          item.priority === 'LOW' && { backgroundColor: '#E8F5E8' }
+        ]}>
+          <Text style={[
+            $priorityText,
+            item.priority === 'URGENT' && { color: '#9C27B0' },
+            item.priority === 'HIGH' && { color: '#F44336' },
+            item.priority === 'MEDIUM' && { color: '#FF9800' },
+            item.priority === 'LOW' && { color: '#4CAF50' }
+          ]}>
+            {item.priority}
+          </Text>
+        </View>
+      </View>
 
       {/* 操作按钮 */}
       <View style={$reminderActions}>
         <Pressable
-          style={[$actionButton, $completeButton]}
+          style={[
+            $actionButton, 
+            $completeButton,
+            item.status === 'COMPLETED' && $completeButtonDisabled
+          ]}
           onPress={() => markAsCompleted(item.id)}
+          disabled={item.status === 'COMPLETED'}
           accessible
           accessibilityRole="button"
-          accessibilityLabel="Mark as completed"
+          accessibilityLabel={item.status === 'COMPLETED' ? "Already completed" : "Mark as completed"}
         >
-          <Text style={$completeButtonText}>✓ Mark Done</Text>
+          <Text style={[
+            $completeButtonText,
+            item.status === 'COMPLETED' && $completeButtonTextDisabled
+          ]}>
+            {item.status === 'COMPLETED' ? "✓ Completed" : "✓ Mark Done"}
+          </Text>
         </Pressable>
 
         <Pressable
-          style={[$actionButton, $snoozeButton]}
+          style={[
+            $actionButton, 
+            $snoozeButton,
+            item.status === 'COMPLETED' && $snoozeButtonDisabled
+          ]}
           onPress={() => Alert.alert("Snoozed", "Reminder snoozed for 15 minutes")}
+          disabled={item.status === 'COMPLETED'}
           accessible
           accessibilityRole="button"
-          accessibilityLabel="Snooze reminder"
+          accessibilityLabel={item.status === 'COMPLETED' ? "Cannot snooze completed reminder" : "Snooze reminder"}
         >
-          <Text style={$snoozeButtonText}>⏰ Snooze 15min</Text>
+          <Text style={[
+            $snoozeButtonText,
+            item.status === 'COMPLETED' && $snoozeButtonTextDisabled
+          ]}>⏰ Snooze 15min</Text>
         </Pressable>
       </View>
     </View>
@@ -315,7 +424,7 @@ export const RemindersScreen: FC<RemindersScreenProps> = ({ navigation }) => {
         
         <Pressable
           style={$addButton}
-          onPress={() => Alert.alert("Add Reminder", "Add new reminder feature coming soon!")}
+          onPress={() => navigation.navigate("CreateReminder")}
           accessible
           accessibilityRole="button"
           accessibilityLabel="Add new reminder"
@@ -327,7 +436,7 @@ export const RemindersScreen: FC<RemindersScreenProps> = ({ navigation }) => {
       {/* 快速统计 */}
       <View style={$statsContainer}>
         <View style={$statCard}>
-          <Text style={$statNumber}>{reminders.filter(r => r.isActive && r.nextReminder.includes('Today')).length}</Text>
+          <Text style={$statNumber}>{reminders.filter(r => r.isActive && r.nextReminder?.includes('Today')).length}</Text>
           <Text style={$statLabel}>Today's Reminders</Text>
         </View>
         <View style={$statCard}>
@@ -335,7 +444,7 @@ export const RemindersScreen: FC<RemindersScreenProps> = ({ navigation }) => {
           <Text style={$statLabel}>Active Reminders</Text>
         </View>
         <View style={$statCard}>
-          <Text style={$statNumber}>{reminders.filter(r => r.type === 'medication').length}</Text>
+          <Text style={$statNumber}>{reminders.filter(r => r.type === 'MEDICATION').length}</Text>
           <Text style={$statLabel}>Medications</Text>
         </View>
       </View>
@@ -351,22 +460,30 @@ export const RemindersScreen: FC<RemindersScreenProps> = ({ navigation }) => {
       </ScrollView>
 
       {/* 提醒列表 */}
-      <FlatList
-        data={filteredReminders()}
-        renderItem={renderReminder}
-        keyExtractor={(item) => item.id}
-        style={$remindersList}
-        contentContainerStyle={$remindersContent}
-        showsVerticalScrollIndicator={false}
-        ItemSeparatorComponent={() => <View style={$reminderSeparator} />}
-        ListEmptyComponent={() => (
-          <View style={$emptyContainer}>
-            <Text style={$emptyIcon}>🎉</Text>
-            <Text style={$emptyTitle}>All caught up!</Text>
-            <Text style={$emptyText}>No reminders for this category.</Text>
-          </View>
-        )}
-      />
+      {isLoading ? (
+        <View style={$loadingContainer}>
+          <Text style={$loadingText}>Loading reminders...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredReminders()}
+          renderItem={renderReminder}
+          keyExtractor={(item) => item.id}
+          style={$remindersList}
+          contentContainerStyle={$remindersContent}
+          showsVerticalScrollIndicator={false}
+          ItemSeparatorComponent={() => <View style={$reminderSeparator} />}
+          ListEmptyComponent={() => (
+            <View style={$emptyContainer}>
+              <Text style={$emptyIcon}>🎉</Text>
+              <Text style={$emptyTitle}>All caught up!</Text>
+              <Text style={$emptyText}>No reminders for this category.</Text>
+            </View>
+          )}
+          refreshing={isLoading}
+          onRefresh={loadReminders}
+        />
+      )}
     </Screen>
   )
 }
@@ -538,6 +655,33 @@ const $reminderCard: ViewStyle = {
   elevation: 4,
 }
 
+const $reminderCardCompleted: ViewStyle = {
+  opacity: 0.7,
+  borderColor: "#4CAF50",
+  borderWidth: 2,
+}
+
+const $titleWithStatus: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  flexWrap: "wrap",
+  marginBottom: 4,
+}
+
+const $completedBadge: ViewStyle = {
+  backgroundColor: "#4CAF50",
+  paddingHorizontal: 8,
+  paddingVertical: 4,
+  borderRadius: 12,
+  marginLeft: 8,
+}
+
+const $completedBadgeText: TextStyle = {
+  fontSize: 12,
+  fontWeight: "700",
+  color: "#FFFFFF",
+}
+
 const $reminderHeader: ViewStyle = {
   marginBottom: 12,
 }
@@ -565,10 +709,20 @@ const $reminderTitle: TextStyle = {
   lineHeight: 26,
 }
 
+const $reminderTitleCompleted: TextStyle = {
+  textDecorationLine: "line-through",
+  color: "#666",
+}
+
 const $reminderTime: TextStyle = {
   fontSize: 16,
   color: "#666",
   fontWeight: "600",
+}
+
+const $reminderTimeCompleted: TextStyle = {
+  color: "#999",
+  fontStyle: "italic",
 }
 
 const $toggleButton: ViewStyle = {
@@ -610,7 +764,7 @@ const $reminderDescription: TextStyle = {
   marginBottom: 12,
 }
 
-const $dosageContainer: ViewStyle = {
+const $locationContainer: ViewStyle = {
   flexDirection: "row",
   alignItems: "center",
   marginBottom: 12,
@@ -619,31 +773,88 @@ const $dosageContainer: ViewStyle = {
   borderRadius: 12,
 }
 
-const $dosageLabel: TextStyle = {
+const $locationLabel: TextStyle = {
   fontSize: 16,
   fontWeight: "700",
   color: "#333",
   marginRight: 8,
 }
 
-const $dosageText: TextStyle = {
+const $locationText: TextStyle = {
   fontSize: 16,
   color: "#666",
   fontWeight: "600",
+  flex: 1,
 }
 
-const $notesContainer: ViewStyle = {
-  marginBottom: 16,
+const $recurrenceContainer: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  marginBottom: 12,
   padding: 12,
   backgroundColor: "rgba(255,255,255,0.7)",
   borderRadius: 12,
 }
 
-const $notesText: TextStyle = {
+const $recurrenceLabel: TextStyle = {
+  fontSize: 16,
+  fontWeight: "700",
+  color: "#333",
+  marginRight: 8,
+}
+
+const $recurrenceBadge: ViewStyle = {
+  backgroundColor: "#E3F2FD",
+  paddingHorizontal: 12,
+  paddingVertical: 6,
+  borderRadius: 12,
+  borderWidth: 1,
+  borderColor: "#2196F3",
+}
+
+const $recurrenceText: TextStyle = {
   fontSize: 14,
+  fontWeight: "600",
+  color: "#2196F3",
+}
+
+const $priorityContainer: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  marginBottom: 16,
+}
+
+const $priorityLabel: TextStyle = {
+  fontSize: 16,
+  fontWeight: "700",
+  color: "#333",
+  marginRight: 12,
+}
+
+const $priorityBadge: ViewStyle = {
+  paddingHorizontal: 12,
+  paddingVertical: 6,
+  borderRadius: 12,
+  borderWidth: 1,
+  borderColor: "rgba(0,0,0,0.1)",
+}
+
+const $priorityText: TextStyle = {
+  fontSize: 14,
+  fontWeight: "700",
+}
+
+const $loadingContainer: ViewStyle = {
+  flex: 1,
+  justifyContent: "center",
+  alignItems: "center",
+  paddingVertical: 40,
+}
+
+const $loadingText: TextStyle = {
+  fontSize: 18,
   color: "#666",
-  fontStyle: "italic",
-  lineHeight: 20,
+  fontWeight: "500",
 }
 
 const $reminderActions: ViewStyle = {
@@ -670,20 +881,36 @@ const $completeButton: ViewStyle = {
   backgroundColor: "#4CAF50",
 }
 
+const $completeButtonDisabled: ViewStyle = {
+  backgroundColor: "#CCC",
+}
+
 const $completeButtonText: TextStyle = {
   fontSize: 16,
   fontWeight: "700",
   color: "#FFFFFF",
 }
 
+const $completeButtonTextDisabled: TextStyle = {
+  color: "#999",
+}
+
 const $snoozeButton: ViewStyle = {
   backgroundColor: "#FF9800",
+}
+
+const $snoozeButtonDisabled: ViewStyle = {
+  backgroundColor: "#CCC",
 }
 
 const $snoozeButtonText: TextStyle = {
   fontSize: 16,
   fontWeight: "700",
   color: "#FFFFFF",
+}
+
+const $snoozeButtonTextDisabled: TextStyle = {
+  color: "#999",
 }
 
 const $emptyContainer: ViewStyle = {

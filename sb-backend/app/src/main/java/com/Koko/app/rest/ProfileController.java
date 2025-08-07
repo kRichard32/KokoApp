@@ -35,8 +35,6 @@ public class ProfileController {
     @Autowired
     private ProfileService profileService;
 
-//    @Autowired
-//    private FileService fileService;
     @Autowired
     private GoogleDriveFileService googleDriveFileService;
 
@@ -104,6 +102,9 @@ public class ProfileController {
             @RequestParam("id") int id) {
 
         Profile profile = profileService.getProfile(id);
+        if (profile.getProfilePictureId() == null){
+            return null;
+        }
         return googleDriveFileService.do_GET(profile.getProfilePictureId());
     }
     @GetMapping("/getUserProfilePicture")

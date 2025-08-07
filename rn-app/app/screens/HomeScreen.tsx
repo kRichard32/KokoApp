@@ -252,8 +252,8 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
         <Pressable
           accessible
           accessibilityRole="button"
-          accessibilityLabel="Health Check-in"
-          onPress={() => navigation.navigate("HealthCheck")}
+          accessibilityLabel="Profile"
+          onPress={() => navigation.navigate("Profile")}
         >
            <Image
             source={

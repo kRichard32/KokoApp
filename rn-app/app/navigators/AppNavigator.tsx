@@ -26,6 +26,9 @@ import { EventsScreen } from "@/screens/EventsScreen"
 import { RemindersScreen } from "@/screens/RemindersScreen"
 import { HealthCheckScreen } from "@/screens/HealthCheckScreen"
 import { ProfileCreationScreen } from "@/screens/ProfileCreationScreen"
+import { ProfileScreen } from "@/screens/ProfileScreen"
+import { CreateEventScreen } from "@/screens/CreateEventScreen"
+import { CreateReminderScreen } from "@/screens/CreateReminderScreen"
 
 import { DemoNavigator, DemoTabParamList } from "./DemoNavigator"
 import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
@@ -64,6 +67,9 @@ export type AppStackParamList = {
   Reminders: undefined
   HealthCheck: undefined
   ProfileCreation: undefined
+  Profile: undefined
+  CreateEvent: undefined
+  CreateReminder: undefined
   // 🔥 Your screens go here
   // IGNITE_GENERATOR_ANCHOR_APP_STACK_PARAM_LIST
   IncomingCall:{
@@ -120,37 +126,35 @@ const AppStack = () => {
       }}
       initialRouteName={initialRouteName}
     >
-      {isAuthenticated ? (
-        <>
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="Message" component={MessageScreen} />
-          <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
-          <Stack.Screen 
-            name="VideoCall" 
-            component={VideoCallScreen}
-            options={{
-              headerShown: false,
-              orientation: "portrait",
-            }}
-          />
-          <Stack.Screen name="People" component={PeopleScreen} />
-          <Stack.Screen name="Match" component={MatchScreen} />
-          <Stack.Screen name="Events" component={EventsScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="Reminders" component={RemindersScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="HealthCheck" component={HealthCheckScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="ProfileCreation" component={ProfileCreationScreen} options={{ headerShown: false }} />
-          
-          <Stack.Screen name="Welcome" component={WelcomeScreen} />
-
-          <Stack.Screen name="Demo" component={DemoNavigator} />
-        </>
-      ) : (
-        <>
-          <Stack.Screen name="OAuthLogin" component={OAuthLoginScreen} />
-          <Stack.Screen name="OAuthCallback" component={OAuthCallbackScreen} />
-          <Stack.Screen name="Login" component={LoginScreen} />
-        </>
-      )}
+      {/* Authentication Screens */}
+      <Stack.Screen name="OAuthLogin" component={OAuthLoginScreen} />
+      <Stack.Screen name="OAuthCallback" component={OAuthCallbackScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} />
+      
+      {/* Main App Screens */}
+      <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="Message" component={MessageScreen} />
+      <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
+      <Stack.Screen 
+        name="VideoCall" 
+        component={VideoCallScreen}
+        options={{
+          headerShown: false,
+          orientation: "portrait",
+        }}
+      />
+      <Stack.Screen name="People" component={PeopleScreen} />
+      <Stack.Screen name="Match" component={MatchScreen} />
+      <Stack.Screen name="Events" component={EventsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Reminders" component={RemindersScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="HealthCheck" component={HealthCheckScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="ProfileCreation" component={ProfileCreationScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="CreateEvent" component={CreateEventScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="CreateReminder" component={CreateReminderScreen} options={{ headerShown: false }} />
+      
+      <Stack.Screen name="Welcome" component={WelcomeScreen} />
+      <Stack.Screen name="Demo" component={DemoNavigator} />
 
       {/** 🔥 Your screens go here */}
       {/* IGNITE_GENERATOR_ANCHOR_APP_STACK_SCREENS */}

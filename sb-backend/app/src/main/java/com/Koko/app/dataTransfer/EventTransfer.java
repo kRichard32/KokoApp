@@ -12,9 +12,8 @@ public class EventTransfer {
     private Double longitude;
     private Integer maxParticipants;
     private String eventType;
-    private Integer minAge;
-    private Integer maxAge;
     private String status;
+    private String duration;
 
     // Getters and setters
     public String getTitle() { return title; }
@@ -41,11 +40,14 @@ public class EventTransfer {
     public String getEventType() { return eventType; }
     public void setEventType(String eventType) { this.eventType = eventType; }
 
-    public Integer getMinAge() { return minAge; }
-    public void setMinAge(Integer minAge) { this.minAge = minAge; }
-
-    public Integer getMaxAge() { return maxAge; }
-    public void setMaxAge(Integer maxAge) { this.maxAge = maxAge; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getDuration() {
+        return duration;
+    }
+
+    public void setDuration(String duration) {
+        this.duration = duration;
+    }
 }

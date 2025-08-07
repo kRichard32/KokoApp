@@ -28,6 +28,7 @@ export const VoiceRecordingButton: React.FC<VoiceRecordingButtonProps> = ({
   const [recognizedText, setRecognizedText] = useState("");
   const [errorText, setErrorText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [navigationMessage, setNavigationMessage] = useState(""); // Store navigation message
   const scaleAnim = useState(new Animated.Value(1))[0];
   const pulseAnim = useState(new Animated.Value(1))[0];
   const textOpacityAnim = useState(new Animated.Value(0))[0];
@@ -50,6 +51,7 @@ export const VoiceRecordingButton: React.FC<VoiceRecordingButtonProps> = ({
       setIsProcessing(false);
       setRecognizedText("");
       setRecording(null);
+      setNavigationMessage("");
     };
   }, []); // Empty dependency array - only runs on mount/unmount  
 
@@ -137,7 +139,7 @@ export const VoiceRecordingButton: React.FC<VoiceRecordingButtonProps> = ({
     if (isRecording) return; // 防止重复触发
     
     setIsRecording(true);
-    setIsProcessing(true);
+    // setIsProcessing(true);
     setRecognizedText("");
     textOpacityAnim.setValue(0);
     
@@ -199,6 +201,7 @@ export const VoiceRecordingButton: React.FC<VoiceRecordingButtonProps> = ({
   const stopRecording = async () => {
     if (!isRecording) return; // 防止重复触发
     
+    setIsProcessing(true);   
     // 停止所有动画并重置按钮大小
     pulseAnim.stopAnimation();
     waveAnim1.stopAnimation();
@@ -274,6 +277,16 @@ export const VoiceRecordingButton: React.FC<VoiceRecordingButtonProps> = ({
         const screen = data.screen;
         console.log('VoiceCommandButton: Calling onCommand with:', data.transcription);
         
+        // Set navigation message based on screen
+        let message = "Processing your request...";
+        if (recognizedText.toLowerCase().includes("mary")) {
+          message = "Opening chat with Mary...";
+        } else {
+          const screenName = screen.replace("Screen", "").toLowerCase();
+          message = `Navigating to the ${screenName} screen...`;
+        }
+        setNavigationMessage(message);
+        
         // Show the "I heard" result
         setRecognizedText(data.transcription);
         setIsProcessing(false);    
@@ -285,6 +298,7 @@ export const VoiceRecordingButton: React.FC<VoiceRecordingButtonProps> = ({
         setIsRecording(false);
         setIsProcessing(false);
         setRecording(null);
+        setNavigationMessage("");
         
         if (onCommand) {
             onCommand(data);
@@ -299,30 +313,43 @@ export const VoiceRecordingButton: React.FC<VoiceRecordingButtonProps> = ({
                 navigation.navigate("People", {  
                 });
             }
+            else if (screen == "EventScreen"){
+              navigation.navigate("Events", {  
+                });
+            }
+            else if (screen == "ReminderScreen"){
+              navigation.navigate("Reminders", {  
+              });
+            }
         }
         }, 2500);
         
       } else if (onError) {
-        setIsProcessing(false); 
+        
         setErrorText("I didn't understand that command.");
+        setRecognizedText("please try again");
+        setIsProcessing(false);
         setTimeout(() => {
         setErrorText("");
         setRecognizedText("");
         setIsRecording(false);
         setIsProcessing(false);
         setRecording(null);
+        setNavigationMessage("");
         onError("No command recognized. Please try again.");
         }, 2500);
       }
       else{
         setErrorText("I didn't understand that command.");
-        setIsProcessing(false); 
+        setRecognizedText("please try again");
+        setIsProcessing(false);
         setTimeout(() => {
         setErrorText("");
         setRecognizedText("");
         setIsRecording(false);
         setIsProcessing(false);
         setRecording(null);
+        setNavigationMessage("");
         }, 2500);
       }
     } catch (error) {
@@ -332,6 +359,7 @@ export const VoiceRecordingButton: React.FC<VoiceRecordingButtonProps> = ({
       setIsRecording(false);
       setRecognizedText("");
       setRecording(null);
+      setNavigationMessage("");
       
       if (onError) {
         onError("Failed to process voice command. Please try again.");
@@ -339,6 +367,11 @@ export const VoiceRecordingButton: React.FC<VoiceRecordingButtonProps> = ({
     }
   };
   const handlePress = () => {
+    // Disable button when processing or showing results
+    if (isProcessing || !!recognizedText) {
+      return;
+    }
+    
     if (isRecording) {
       stopRecording();
     } else {
@@ -362,21 +395,37 @@ export const VoiceRecordingButton: React.FC<VoiceRecordingButtonProps> = ({
         <Pressable
           accessible
           accessibilityRole="button"
-          accessibilityLabel={isRecording ? "Tap to stop recording" : "Tap to start voice command"}
+          accessibilityLabel={
+            isProcessing || !!recognizedText
+              ? "Processing voice command" 
+              : isRecording 
+                ? "Tap to stop recording" 
+                : "Tap to start voice command"
+          }
           onPress={handlePress}
+          disabled={isProcessing || !!recognizedText}
           style={[
             $voiceButton,
             { 
-              backgroundColor: isRecording ? "#FFE4E1" : colors.palette.accent100, 
-              borderColor: isRecording ? "#FF6B6B" : colors.palette.accent500,
+              backgroundColor: isProcessing || !!recognizedText
+                ? "#E5E5E5" 
+                : isRecording 
+                  ? "#FFE4E1" 
+                  : colors.palette.accent100, 
+              borderColor: isProcessing || !!recognizedText
+                ? "#CCCCCC" 
+                : isRecording 
+                  ? "#FF6B6B" 
+                  : colors.palette.accent500,
+              opacity: isProcessing || !!recognizedText ? 0.6 : 1,
             },
           ]}
         >
           <Text size="xxl" style={$voiceIcon}>
-            {isRecording ? "🔴" : "🎤"}
+            {isProcessing ? "⏳" : isRecording ? "🔴" : "🎤"}
           </Text>
           <Text preset="formLabel" size="lg" weight="medium" style={$voiceLabel}>
-            {isRecording ? "Tap to stop" : "Tap to speak"}
+            {isProcessing ? "Processing..." : isRecording ? "Tap to stop" : "Tap to speak"}
           </Text>
         </Pressable>
       </Animated.View>
@@ -468,10 +517,7 @@ export const VoiceRecordingButton: React.FC<VoiceRecordingButtonProps> = ({
                   <Text style={$siriResultText}>"{recognizedText}"</Text>
                   <View style={$siriResultActions}>
                     <Text style={$siriResultHint}>
-                      {recognizedText.toLowerCase().includes("mary") 
-                        ? "Opening chat with Mary..." 
-                        : "Processing your request..."
-                      }
+                      {navigationMessage || "Processing your request..."}
                     </Text>
                   </View>
                 </Animated.View>
