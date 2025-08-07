@@ -5,10 +5,21 @@ import { useAppTheme } from "@/theme/context"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import type { ThemedStyle } from "@/theme/types"
+import type { AppStackScreenProps } from "@/navigators/AppNavigator"
 
-export const OAuthCallbackScreen: FC = function OAuthCallbackScreen() {
+interface OAuthCallbackScreenProps extends AppStackScreenProps<"OAuthCallback"> {}
+
+export const OAuthCallbackScreen: FC<OAuthCallbackScreenProps> = function OAuthCallbackScreen({ navigation }) {
   const { themed } = useAppTheme()
-  const { checkLoginState } = useAuth()
+  const { checkLoginState, loggedIn} = useAuth()
+  useEffect(() => {
+    
+    // Navigate to Home screen when user is logged in
+    if (loggedIn) {
+      console.log('User is logged in, navigating to Home screen')
+      navigation.replace('Home')
+    }
+  }, [loggedIn, navigation])
 
   useEffect(() => {
     // Automatically check login state when this screen loads

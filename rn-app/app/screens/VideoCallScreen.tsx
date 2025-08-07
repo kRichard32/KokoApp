@@ -293,7 +293,7 @@ export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route })
           console.log('ICE candidate gathering finished - all candidates sent')
           console.log('📊 CANDIDATE SUMMARY:', candidateStats.current)
           if (candidateStats.current.relay === 0) {
-            console.error('⚠️ NO RELAY CANDIDATES - TURN servers not working!')
+            console.log('⚠️ NO RELAY CANDIDATES - TURN servers not working!')
             console.log('💡 This explains why connection fails when SRFLX alone is insufficient')
           } else {
             console.log('✅ RELAY candidates available - TURN servers working')
@@ -512,7 +512,7 @@ export const VideoCallScreen: FC<VideoCallScreenProps> = ({ navigation, route })
       console.log('Offer sent via STOMP')
     }
   } catch (error) {
-    console.error('Error creating offer:', error)
+    console.log('Error creating offer:', error)
   }
 }
 

@@ -24,23 +24,45 @@ export class CallNotificationService {
     try {
       // Request permissions for notifications
       if (Platform.OS === 'android') {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-        );
-        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          console.warn('Notification permissions not granted');
-          return;
+        // For Android 13+ (API level 33+), we need to request POST_NOTIFICATIONS permission
+        try {
+          console.log('Requesting Android notification permissions...');
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+            {
+              title: 'Notification Permission',
+              message: 'This app needs access to show notifications for incoming calls',
+              buttonNeutral: 'Ask Me Later',
+              buttonNegative: 'Cancel',
+              buttonPositive: 'OK',
+            }
+          );
+          
+          console.log('Android notification permission result:', granted);
+          
+          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+            console.warn('Android notification permissions not granted, result:', granted);
+            // Continue anyway as some Android versions don't require explicit permission
+          } else {
+            console.log('Android notification permissions granted');
+          }
+        } catch (error) {
+          console.error('Error requesting Android notification permissions:', error);
+          // Continue anyway as permission might not be needed on older Android versions
         }
       }
 
       // Request Firebase messaging permissions
+      console.log('Requesting Firebase messaging permissions...');
       const authStatus = await messaging().requestPermission();
+      console.log('Firebase messaging permission status:', authStatus);
+      
       const enabled =
         authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
         authStatus === messaging.AuthorizationStatus.PROVISIONAL;
 
       if (!enabled) {
-        console.warn('Firebase messaging permissions not granted');
+        console.warn('Firebase messaging permissions not granted, status:', authStatus);
         return;
       }
 

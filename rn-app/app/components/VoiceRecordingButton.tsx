@@ -138,8 +138,11 @@ export const VoiceRecordingButton: React.FC<VoiceRecordingButtonProps> = ({
   const startRecording = async() => {
     if (isRecording) return; // 防止重复触发
     
+    setIsProcessing(true);
+    await recordAudio();
     setIsRecording(true);
-    // setIsProcessing(true);
+    
+    setIsProcessing(false);
     setRecognizedText("");
     textOpacityAnim.setValue(0);
     
@@ -193,7 +196,7 @@ export const VoiceRecordingButton: React.FC<VoiceRecordingButtonProps> = ({
     createWaveAnimation(waveAnim5, 150).start();
 
     // 开始模拟语音识别
-    await recordAudio();
+    
 
     console.log("Recording started - implement voice recognition here");
   };
