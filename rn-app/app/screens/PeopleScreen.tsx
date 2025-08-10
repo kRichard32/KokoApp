@@ -27,7 +27,7 @@ interface Person {
   age?: number
   location?: string
   interests?: string[]
-  avatar?: any
+  avatar?: string | any
   bio?: string
   isOnline?: boolean
   compatibility?: number // 匹配度 0-100
@@ -61,20 +61,47 @@ export const PeopleScreen: FC<PeopleScreenProps> = ({ navigation }) => {
       console.log('Match users data:', response.data)
       
       if (response.data && Array.isArray(response.data)) {
-        // 将API响应转换为我们的Person格式
-        const formattedPeople: Person[] = response.data.map((user: any, index: number) => ({
-          id: user.id,
-          name: user.name || 'Unknown User',
-          age: user.age || 25,
-          location: user.location || 'Unknown Location',
-          interests: user.traits.map((t: any) => t.traitName) || ['Chat', 'Meeting'],
-          avatar: require("../../assets/images/avatar-placeholder.jpg"),
-          bio: user.bio || 'Looking forward to meeting new people!',
-          isOnline: Math.random() > 0.3, // 随机在线状态
-          compatibility: Math.floor(Math.random() * 40) + 60, // 60-100%的匹配度
-        }))
+        // 将API响应转换为我们的Person格式，并获取头像
+        const peopleWithAvatars = await Promise.all(
+          response.data.map(async (user: any) => {
+            let avatarUri = null
+            
+            try {
+              // 获取用户头像
+              const avatarResponse = await axios.get(`${serverUrl}/api/profile/getProfilePicture`, {
+                withCredentials: true,
+                params: { id: user.id },
+                responseType: 'arraybuffer',
+              })
+              
+              if (avatarResponse.data && avatarResponse.data.byteLength > 0) {
+                // 将二进制数据转换为base64
+                const base64 = btoa(
+                  new Uint8Array(avatarResponse.data)
+                    .reduce((data, byte) => data + String.fromCharCode(byte), '')
+                )
+                avatarUri = `data:image/jpeg;base64,${base64}`
+              }
+            } catch (avatarError) {
+              console.log(`Failed to fetch avatar for user ${user.id}:`, avatarError)
+              // 使用默认头像
+            }
+
+            return {
+              id: user.id,
+              name: user.name || 'Unknown User',
+              age: user.age || 25,
+              location: user.location || 'Unknown Location',
+              interests: user.traits.map((t: any) => t.traitName) || ['Chat', 'Meeting'],
+              avatar: avatarUri || require("../../assets/images/avatar-placeholder.jpg"),
+              bio: user.bio || 'Looking forward to meeting new people!',
+              isOnline: Math.random() > 0.3, // 随机在线状态
+              compatibility: Math.floor(Math.random() * 40) + 60, // 60-100%的匹配度
+            }
+          })
+        )
         
-        setPeople(formattedPeople)
+        setPeople(peopleWithAvatars)
       }
     } catch (error) {
       console.error('Failed to fetch match users:', error)
@@ -177,7 +204,7 @@ export const PeopleScreen: FC<PeopleScreenProps> = ({ navigation }) => {
   const renderPersonCard: ListRenderItem<Person> = ({ item }) => (
     <Pressable
       style={$personCard}
-      onPress={() => openMatchScreen(item)}
+      // onPress={() => openMatchScreen(item)}
       accessible
       accessibilityRole="button"
       accessibilityLabel={`View ${item.name}'s profile`}
@@ -185,7 +212,7 @@ export const PeopleScreen: FC<PeopleScreenProps> = ({ navigation }) => {
       <View style={$cardHeader}>
         <View style={$avatarContainer}>
           <Image
-            source={item.avatar ?? require("../../assets/images/avatar-placeholder.jpg")}
+            source={typeof item.avatar === 'string' ? { uri: item.avatar } : item.avatar ?? require("../../assets/images/avatar-placeholder.jpg")}
             style={$avatar}
             defaultSource={require("../../assets/images/avatar-placeholder.jpg")}
           />
@@ -298,6 +325,15 @@ export const PeopleScreen: FC<PeopleScreenProps> = ({ navigation }) => {
         contentContainerStyle={$listContainer}
         ItemSeparatorComponent={() => <View style={$separator} />}
       />
+      <Pressable
+                  onPress={() => navigation.goBack()}
+                  style={$backButtonBottomRight}
+                  accessible
+                  accessibilityRole="button"
+                  accessibilityLabel="Go back"
+                >
+                  <Text style={$backIcon}>←</Text>
+                </Pressable>
     </Screen>
   )
 }
@@ -319,7 +355,22 @@ const $header: ViewStyle = {
   borderBottomColor: "#F0F0F0",
   backgroundColor: "#FFFFFF",
 }
-
+const $backButtonBottomRight: ViewStyle = {
+  position: "absolute",
+  bottom: 24,
+  right: 24,
+  padding: 16,
+  borderRadius: 24,
+  backgroundColor: "#fff",
+  elevation: 4,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.2,
+  shadowRadius: 4,
+  zIndex: 100,
+  borderWidth: 2,           // <-- Add a thicker, more solid border
+  borderColor: "#000",      // <-- Solid black border
+}
 const $backButton: ViewStyle = {
   padding: 8,
   borderRadius: 20,

@@ -413,6 +413,15 @@ export const EventsScreen: FC<EventsScreenProps> = ({ navigation }) => {
           onRefresh={loadEvents}
         />
       )}
+      <Pressable
+          onPress={() => navigation.goBack()}
+          style={$backButtonBottomRight}
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Text style={$backIcon}>←</Text>
+        </Pressable>
     </Screen>
   )
 }
@@ -423,7 +432,22 @@ const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
   backgroundColor: "#FFFFFF",
 })
-
+const $backButtonBottomRight: ViewStyle = {
+  position: "absolute",
+  bottom: 24,
+  right: 24,
+  padding: 16,
+  borderRadius: 24,
+  backgroundColor: "#fff",
+  elevation: 4,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.2,
+  shadowRadius: 4,
+  zIndex: 100,
+  borderWidth: 2,           // <-- Add a thicker, more solid border
+  borderColor: "#000",      // <-- Solid black border
+}
 const $header: ViewStyle = {
   flexDirection: "row",
   alignItems: "center",

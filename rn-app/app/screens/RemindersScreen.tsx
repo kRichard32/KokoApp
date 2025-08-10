@@ -484,12 +484,36 @@ export const RemindersScreen: FC<RemindersScreenProps> = ({ navigation }) => {
           onRefresh={loadReminders}
         />
       )}
+      <Pressable
+          onPress={() => navigation.goBack()}
+          style={$backButtonBottomRight}
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Text style={$backIcon}>←</Text>
+        </Pressable>
     </Screen>
   )
 }
 
 /* ————————— 样式 ————————— */
-
+const $backButtonBottomRight: ViewStyle = {
+  position: "absolute",
+  bottom: 24,
+  right: 24,
+  padding: 12,
+  borderRadius: 24,
+  backgroundColor: "#fff",
+  elevation: 4,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.2,
+  shadowRadius: 4,
+  zIndex: 100,
+  borderWidth: 2,           // <-- Add a thicker, more solid border
+  borderColor: "#000",      // <-- Solid black border
+}
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
   backgroundColor: "#F8F9FA",
@@ -923,6 +947,9 @@ const $emptyContainer: ViewStyle = {
 const $emptyIcon: TextStyle = {
   fontSize: 64,
   marginBottom: 16,
+  lineHeight: 72,
+  textAlign: "center",
+  includeFontPadding: false,
 }
 
 const $emptyTitle: TextStyle = {

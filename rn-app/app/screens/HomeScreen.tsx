@@ -177,10 +177,10 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
 
   /** ====== 卡片按钮元数据 ====== */
   const ACTIONS = [
-    { key: "Chat", emoji: "💬", tint: colors.palette.primary100, route: "Message" },
-    { key: "Match", emoji: "🤝", tint: colors.palette.secondary100, route: "People" },
-    { key: "Events", emoji: "🎉", tint: colors.palette.secondary100, route: "Events" },
-    { key: "Reminders", emoji: "⏰", tint: colors.palette.primary100, route: "Reminders" },
+    { key: "Chat", emoji: "💬", tint: "#1100ffff", route: "Message" }, // Black
+    { key: "Match", emoji: "🤝", tint: "#00ccffff", route: "People" }, // Strong blue
+    { key: "Events", emoji: "🎉", tint: "#008A00", route: "Events" }, // Strong green
+    { key: "Reminders", emoji: "⏰", tint: "#B80000", route: "Reminders" }, // Strong red
   ] as const
 
   /** ====== 底栏按钮元数据 ====== */
@@ -202,13 +202,19 @@ export const HomeScreen: FC<HomeScreenProps> = ({ navigation }) => {
         onPress={() => navigation.navigate(route as never)}
         style={[
           $card,
-          { backgroundColor: tint, width: "48%", marginBottom: 12 },
+          {
+            backgroundColor: tint,
+            width: "48%",
+            marginBottom: 12,
+            borderWidth: 1,
+            borderColor: "#000",
+          },
         ]}
       >
-        <Text size="xl" weight="bold">
+        <Text size="xl" weight="bold" style={{ color: 'white' }}>
           {emoji}
         </Text>
-        <Text preset="formLabel" size="md" style={$cardLabel}>
+        <Text preset="formLabel" size="md" style={[$cardLabel, { color: 'white' }]}> 
           {key}
         </Text>
       </Pressable>

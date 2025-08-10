@@ -24,6 +24,34 @@ import type { ThemedStyle } from "@/theme/types"
 
 const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL;
 
+// Helper function to format timestamps
+const formatTimestamp = (timestamp: string): string => {
+  try {
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+    
+    if (diffInHours < 1) {
+      const diffInMinutes = Math.floor(diffInHours * 60)
+      return diffInMinutes <= 1 ? 'Just now' : `${diffInMinutes}m ago`
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)}h ago`
+    } else if (diffInHours < 168) { // Less than a week
+      const diffInDays = Math.floor(diffInHours / 24)
+      return `${diffInDays}d ago`
+    } else {
+      // Format as date for older messages
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+      })
+    }
+  } catch (error) {
+    return 'Unknown'
+  }
+}
+
 // 数据类型定义
 interface People {
   id: string
@@ -43,6 +71,7 @@ interface Conversation {
   lastMessage: string
   lastMessageTime: string
   unreadCount?: number
+  avatar?: string | null
 }
 
 interface MessageScreenProps extends AppStackScreenProps<"Message"> {}
@@ -81,37 +110,64 @@ export const MessageScreen: FC<MessageScreenProps> = ({ navigation }) => {
       },
     })
     
-    console.log('Conversations data:', response.data)
+    // console.log('Conversations data:', response.data)
     
     if (response.data && Array.isArray(response.data)) {
       // 将API响应转换为我们的对话格式
-      const formattedConversations: Conversation[] = response.data.map((conv: any) => {
-        // Helper function to safely get user name
-        const getUserName = (user: any): string => {
-          if (typeof user === 'string') return user;
-          if (user && typeof user.name === 'string') return user.name;
-          return 'Unknown User';
-        }
-        
-        // Generate title safely
-        let title = 'Unknown Conversation';
-        if (conv.users && Array.isArray(conv.users) && conv.users.length > 0) {
-          if (conv.users.length === 1) {
-            title = getUserName(conv.users[0]);
-          } else {
-            title = conv.users.map(getUserName).join(', ');
+      const formattedConversations: Conversation[] = await Promise.all(
+        response.data.map(async (conv: any) => {
+          // Helper function to safely get user name
+          const getUserName = (user: any): string => {
+            if (typeof user === 'string') return user;
+            if (user && typeof user.name === 'string') return user.name;
+            return 'Unknown User';
           }
-        }
-        
-        return {
-          id: conv.id,
-          title: title || 'Unknown Conversation',
-          users: conv.users || [],
-          lastMessage: conv.lastMessage || 'No messages yet',
-          lastMessageTime: conv.timestamp || 'Just now',
-          unreadCount: conv.unreadCount || 0,
-        };
-      })
+          
+          // Generate title safely
+          let title = 'Unknown Conversation';
+          if (conv.users && Array.isArray(conv.users) && conv.users.length > 0) {
+            if (conv.users.length === 1) {
+              title = getUserName(conv.users[0]);
+            } else {
+              title = conv.users.map(getUserName).join(', ');
+            }
+          }
+          // console.log('User id:', conv.users)
+          // Fetch avatar for the first user in the conversation
+          let avatar = null;
+          if (conv.users && conv.users.length > 0 && conv.users[0].id) {
+            try {
+              const avatarResponse = await axios.get(`${serverUrl}/api/profile/getProfilePicture`, {
+                withCredentials: true,
+                params: { id: conv.users[0].id },
+                responseType: 'arraybuffer',
+              });
+
+              if (avatarResponse.data && avatarResponse.data.byteLength > 0) {
+                const base64String = btoa(
+                  new Uint8Array(avatarResponse.data).reduce((data, byte) => data + String.fromCharCode(byte), '')
+                );
+                avatar = `data:image/jpeg;base64,${base64String}`;
+              }
+            } catch (avatarError: any) {
+              if (avatarError.response?.status !== 404) {
+                console.log(`Could not load avatar for user ${conv.users[0].id}:`, avatarError.message);
+              }
+              // Use default avatar if fetch fails
+            }
+          }
+          
+          return {
+            id: conv.id,
+            title: title || 'Unknown Conversation',
+            users: conv.users || [],
+            lastMessage: conv.lastMessage || 'No messages yet',
+            lastMessageTime: formatTimestamp(conv.timestamp || new Date().toISOString()),
+            unreadCount: conv.unreadCount || 0,
+            avatar: avatar, // Add avatar to conversation object
+          };
+        })
+      )
       
       setConversations(formattedConversations)
 
@@ -120,7 +176,7 @@ export const MessageScreen: FC<MessageScreenProps> = ({ navigation }) => {
         id: conv.id,
         name: conv.title,
         specialty: `${conv.users.length} participants`,
-        avatar: require("../../assets/images/avatar-placeholder.jpg"), // 使用默认头像
+        avatar: conv.avatar || require("../../assets/images/avatar-placeholder.jpg"), // Use fetched avatar or default
         isOnline: true, // 假设都在线
       }))
       
@@ -326,7 +382,7 @@ export const MessageScreen: FC<MessageScreenProps> = ({ navigation }) => {
       safeAreaEdges={["top"]}
       contentContainerStyle={themed($container)}
     >
-      {/* Fixed Header with Navigation */}
+      
       <View style={$headerNav}>
         <Pressable
           onPress={() => navigation.goBack()}
@@ -337,12 +393,10 @@ export const MessageScreen: FC<MessageScreenProps> = ({ navigation }) => {
         >
           <Text style={$backIcon}>←</Text>
         </Pressable>
-        
         {/* 顶部导航栏中的小标题 - 初始隐藏 */}
         <Animated.View style={{ opacity: titleOpacity }}>
           <Text style={$navTitle}>Message</Text>
         </Animated.View>
-        
         <Pressable
           style={$menuButton}
           accessible
@@ -351,8 +405,8 @@ export const MessageScreen: FC<MessageScreenProps> = ({ navigation }) => {
         >
           <Text style={$menuIcon}>☰</Text>
         </Pressable>
+        
       </View>
-
       {/* Large Title Container - 动态高度 */}
       <Animated.View style={[
         $titleContainer,
@@ -431,7 +485,11 @@ export const MessageScreen: FC<MessageScreenProps> = ({ navigation }) => {
               >
                 <View style={$contactImageContainer}>
                   <Image
-                    source={require("../../assets/images/avatar-placeholder.jpg")}
+                    source={
+                      item.avatar 
+                        ? { uri: item.avatar }
+                        : require("../../assets/images/avatar-placeholder.jpg")
+                    }
                     style={$contactImage}
                   />
                 </View>
@@ -461,6 +519,17 @@ export const MessageScreen: FC<MessageScreenProps> = ({ navigation }) => {
           )}
         </View>
       </ScrollView>
+    
+      
+      <Pressable
+          onPress={() => navigation.goBack()}
+          style={$backButtonBottomRight}
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Text style={$backIcon}>←</Text>
+        </Pressable>
     </Screen>
   )
 }
@@ -475,7 +544,22 @@ const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $scrollContainer: ViewStyle = {
   flex: 1,
 }
-
+const $backButtonBottomRight: ViewStyle = {
+  position: "absolute",
+  bottom: 24,
+  right: 24,
+  padding: 16,
+  borderRadius: 24,
+  backgroundColor: "#fff",
+  elevation: 4,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.2,
+  shadowRadius: 4,
+  zIndex: 100,
+  borderWidth: 3,           // <-- Add a thicker, more solid border
+  borderColor: "#000",      // <-- Solid black border
+}
 const $headerNav: ViewStyle = {
   flexDirection: "row",
   alignItems: "center",
@@ -513,6 +597,12 @@ const $header: ViewStyle = {
 const $backButton: ViewStyle = {
   padding: 8,
   borderRadius: 20,
+  backgroundColor: "#fff",
+  elevation: 4,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.2,
+  shadowRadius: 4,
 }
 
 const $backIcon: TextStyle = {
@@ -529,6 +619,12 @@ const $headerTitle: TextStyle = {
 const $menuButton: ViewStyle = {
   padding: 8,
   borderRadius: 20,
+  backgroundColor: "#fff",
+  elevation: 4,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.2,
+  shadowRadius: 4,
 }
 
 const $menuIcon: TextStyle = {

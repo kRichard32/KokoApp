@@ -313,8 +313,9 @@ export const MatchScreen: FC<MatchScreenProps> = ({ navigation, route }) => {
           <Text style={$messageButtonIcon}>💬</Text>
           <Text style={$messageButtonText}>Message</Text>
         </Pressable>
-
+                      
       </View>
+      
     </Screen>
   )
 }
