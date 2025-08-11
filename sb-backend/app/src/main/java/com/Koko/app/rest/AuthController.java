@@ -104,14 +104,13 @@ public class AuthController {
             // Parse response to get id_token
             JsonNode tokenJson = objectMapper.readTree(tokenResponse);
             String idToken = tokenJson.has("id_token") ? tokenJson.get("id_token").asText() : null;
-
+            String refreshToken = tokenJson.has("refresh_token") ? tokenJson.get("refresh_token").asText() : null;
             if (idToken == null) {
                 Map<String, String> error = new HashMap<>();
                 error.put("message", "Auth error");
                 return ResponseEntity.badRequest().body(error);
             }
 
-            // Decode id_token to get user info (Note: This doesn't verify signature)
             Map<String, Object> userInfo = jwtService.decodeIdToken(idToken);
 
             Map<String, Object> user = new HashMap<>();
@@ -130,6 +129,7 @@ public class AuthController {
             Map<String, Object> responseBody = new HashMap<>();
             responseBody.put("user", user);
             responseBody.put("idToken", idToken); // Send id_token to frontend
+            responseBody.put("refreshToken", refreshToken);
 
             return ResponseEntity.ok(responseBody);
 
@@ -181,7 +181,7 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout(HttpServletResponse response) {
         // Clear cookie
-        Cookie cookie = new Cookie("token", "");
+        Cookie cookie = new Cookie("token", "test");
         cookie.setMaxAge(0);
         cookie.setPath("/");
         cookie.setHttpOnly(true);
@@ -191,5 +191,97 @@ public class AuthController {
         responseBody.put("message", "Logged out");
 
         return ResponseEntity.ok(responseBody);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<Map<String, Object>> refreshToken(@RequestParam String refreshToken,
+                                                           HttpServletResponse response) {
+        Map<String, Object> responseBody = new HashMap<>();
+        
+        try {
+            if (refreshToken == null || refreshToken.trim().isEmpty()) {
+                responseBody.put("success", false);
+                responseBody.put("message", "Refresh token is required");
+                return ResponseEntity.badRequest().body(responseBody);
+            }
+
+            // Prepare request to Google's token refresh endpoint
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("client_id", config.getClientId());
+            params.add("client_secret", config.getClientSecret());
+            params.add("refresh_token", refreshToken.trim());
+            params.add("grant_type", "refresh_token");
+
+            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+
+            // Call Google's token refresh endpoint
+            ResponseEntity<String> tokenResponse = restTemplate.postForEntity(
+                "https://oauth2.googleapis.com/token", 
+                request, 
+                String.class
+            );
+
+            if (tokenResponse.getStatusCode() == HttpStatus.OK) {
+                JsonNode tokenData = objectMapper.readTree(tokenResponse.getBody());
+                
+                if (tokenData.has("access_token")) {
+                    String accessToken = tokenData.get("access_token").asText();
+                    String idToken = tokenData.has("id_token") ? tokenData.get("id_token").asText() : null;
+                    
+                    // If we got a new ID token, validate it and set cookie
+                    if (idToken != null) {
+                        try {
+                            Map<String, Object> userInfo = jwtService.decodeIdToken(idToken);
+                            
+                            // Set new ID token cookie
+                            Cookie cookie = new Cookie("token", idToken);
+                            cookie.setMaxAge(config.getTokenExpiration());
+                            cookie.setPath("/");
+                            cookie.setHttpOnly(true);
+                            response.addCookie(cookie);
+
+                            Map<String, Object> user = new HashMap<>();
+                            user.put("name", userInfo.get("name"));
+                            user.put("email", userInfo.get("email"));
+                            user.put("picture", userInfo.get("picture"));
+
+                            responseBody.put("success", true);
+                            responseBody.put("message", "Token refreshed successfully");
+                            responseBody.put("user", user);
+                            responseBody.put("idToken", idToken);
+                            
+                            return ResponseEntity.ok(responseBody);
+                            
+                        } catch (Exception e) {
+                            responseBody.put("success", false);
+                            responseBody.put("message", "Invalid ID token received");
+                            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(responseBody);
+                        }
+                    } else {
+                        // No ID token in response, but we have access token
+                        responseBody.put("success", true);
+                        responseBody.put("message", "Access token refreshed, but no ID token provided");
+                        responseBody.put("access_token", accessToken);
+                        return ResponseEntity.ok(responseBody);
+                    }
+                } else {
+                    responseBody.put("success", false);
+                    responseBody.put("message", "No access token in response");
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(responseBody);
+                }
+            } else {
+                responseBody.put("success", false);
+                responseBody.put("message", "Failed to refresh token with Google");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(responseBody);
+            }
+
+        } catch (Exception e) {
+            responseBody.put("success", false);
+            responseBody.put("message", "Error refreshing token: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(responseBody);
+        }
     }
 }

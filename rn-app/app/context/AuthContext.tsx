@@ -2,6 +2,7 @@ import { createContext, FC, PropsWithChildren, useCallback, useContext, useMemo,
 import { useMMKVString } from "react-native-mmkv"
 import { CommonActions } from "@react-navigation/native"
 import { navigationRef } from "@/navigators/navigationUtilities"
+import { SecureStorage } from "@/utils/secureStorage"
 
 import axios from "axios"
 
@@ -22,6 +23,7 @@ export type AuthContextType = {
   logout: () => void
   checkLoginState: (showNetworkError?: boolean) => Promise<void>
   resetNetworkError: () => void
+  refreshTokenIfNeeded: () => Promise<boolean>
   validationError: string
 }
 
@@ -38,13 +40,17 @@ export const AuthProvider: FC<PropsWithChildren<AuthProviderProps>> = ({ childre
   const [loggedIn, setLoggedIn] = useState(false)
   const [profileChecked, setProfileChecked] = useState(false)
   const [hasProfile, setHasProfile] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false) // Track if we're already refreshing
 
-  // Set up axios interceptor to include auth token in requests
+  // Set up axios interceptors to include auth token and handle token refresh
   useEffect(() => {
-    const interceptor = axios.interceptors.request.use(
+    const requestInterceptor = axios.interceptors.request.use(
       (config) => {
         if (authToken && authToken !== "authenticated") {
           config.headers.Authorization = `Bearer ${authToken}`
+          console.log('Request interceptor: Adding token', authToken.substring(0, 20) + '...')
+        } else {
+          console.log('Request interceptor: No valid token available, authToken:', authToken)
         }
         return config
       },
@@ -53,11 +59,91 @@ export const AuthProvider: FC<PropsWithChildren<AuthProviderProps>> = ({ childre
       }
     )
 
-    // Cleanup interceptor on unmount
+    // Cleanup interceptor on unmount or token change
     return () => {
-      axios.interceptors.request.eject(interceptor)
+      axios.interceptors.request.eject(requestInterceptor)
     }
-  }, [authToken])
+  }, [authToken]) // Only depend on authToken changes
+
+  // Set up response interceptor separately to avoid re-registration
+  useEffect(() => {
+    const responseInterceptor = axios.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config
+        
+        // If we get a 401 and haven't already tried to refresh this specific request
+        if (error.response?.status === 401 && !originalRequest._retry && !isRefreshing) {
+          originalRequest._retry = true
+          setIsRefreshing(true) // Prevent multiple simultaneous refresh attempts
+          
+          console.log('Received 401, attempting token refresh...')
+          try {
+            // Check if we have a refresh token
+            const refreshToken = await SecureStorage.getRefreshToken()
+            console.log('Refresh token check:', refreshToken ? 'Found' : 'Not found')
+            
+            if (!refreshToken) {
+              console.log('No refresh token available for auto-refresh')
+              setIsRefreshing(false)
+              await SecureStorage.clearAllTokens()
+              setAuthToken(undefined)
+              setLoggedIn(false)
+              navigateToInitialScreen()
+              return Promise.reject(error)
+            }
+
+            console.log('Attempting to refresh access token with refresh token...')
+            const newAccessToken = await SecureStorage.refreshAccessToken(serverUrl || '')
+            
+            if (newAccessToken) {
+              console.log('Auto-refresh successful, new token:', newAccessToken.substring(0, 20) + '...')
+              
+              // Update the context state first
+              setAuthToken(newAccessToken)
+              
+              // Update the global axios headers
+              axios.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`
+              console.log('Updated axios default headers')
+              
+              // Ensure the original request has the new token
+              if (!originalRequest.headers) {
+                originalRequest.headers = {}
+              }
+              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
+              console.log('Updated original request headers')
+              
+              setIsRefreshing(false)
+              
+              // Log the headers being sent
+              console.log('Retrying request with headers:', originalRequest.headers.Authorization?.substring(0, 30) + '...')
+              
+              return axios(originalRequest)
+            } else {
+              console.log('Auto-refresh failed')
+              await SecureStorage.clearAllTokens()
+              setAuthToken(undefined)
+              setLoggedIn(false)
+              setIsRefreshing(false)
+            }
+          } catch (refreshError) {
+            console.error('Error during auto-refresh:', refreshError)
+            await SecureStorage.clearAllTokens()
+            setAuthToken(undefined)
+            setLoggedIn(false)
+            setIsRefreshing(false)
+          }
+        }
+        
+        return Promise.reject(error)
+      }
+    )
+
+    // Cleanup response interceptor
+    return () => {
+      axios.interceptors.response.eject(responseInterceptor)
+    }
+  }, []) // Empty dependency array - only setup once
 
   const resetNetworkError = useCallback(() => {
     setNetworkError(false)
@@ -165,6 +251,24 @@ export const AuthProvider: FC<PropsWithChildren<AuthProviderProps>> = ({ childre
     checkLoginState(false)
   }, [checkLoginState])
 
+  // Initialize tokens from secure storage on app start
+  useEffect(() => {
+    const initializeTokens = async () => {
+      try {
+        const storedAccessToken = await SecureStorage.getAccessToken()
+        if (storedAccessToken && storedAccessToken !== authToken) {
+          console.log('Loading stored access token from secure storage')
+          setAuthToken(storedAccessToken)
+          axios.defaults.headers.common['Authorization'] = `Bearer ${storedAccessToken}`
+        }
+      } catch (error) {
+        console.error('Failed to load tokens from secure storage:', error)
+      }
+    }
+
+    initializeTokens()
+  }, []) // Only run once on mount
+
   const logout = useCallback(async () => {
     try {
       await fetch(`${serverUrl}/auth/logout`, {
@@ -186,11 +290,60 @@ export const AuthProvider: FC<PropsWithChildren<AuthProviderProps>> = ({ childre
       setLoggedIn(false)
       setProfileChecked(false)
       setHasProfile(false)
+      
+      // Clear tokens from secure storage
+      try {
+        await SecureStorage.clearAllTokens()
+        console.log('Tokens cleared from secure storage during logout')
+      } catch (storageError) {
+        console.error('Failed to clear tokens from secure storage:', storageError)
+      }
+      
       navigateToInitialScreen()
       // Clear axios authorization header
       delete axios.defaults.headers.common['Authorization']
     }
   }, [setAuthEmail, setAuthToken, navigateToInitialScreen])
+
+  // Function to refresh access token using stored refresh token
+  const refreshTokenIfNeeded = useCallback(async (): Promise<boolean> => {
+    try {
+      console.log('Checking if token refresh is needed...')
+      
+      // Check if we have a refresh token
+      const hasRefreshToken = await SecureStorage.hasRefreshToken()
+      if (!hasRefreshToken) {
+        console.log('No refresh token available')
+        return false
+      }
+
+      // Try to refresh the access token
+      const newAccessToken = await SecureStorage.refreshAccessToken(serverUrl || '')
+      
+      if (newAccessToken) {
+        console.log('Access token refreshed successfully')
+        setAuthToken(newAccessToken)
+        axios.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`
+        return true
+      } else {
+        console.log('Failed to refresh access token')
+        // Clear invalid tokens and redirect to login
+        await SecureStorage.clearAllTokens()
+        setAuthToken(undefined)
+        setLoggedIn(false)
+        navigateToInitialScreen()
+        return false
+      }
+    } catch (error) {
+      console.error('Error during token refresh:', error)
+      // Clear tokens and redirect to login on error
+      await SecureStorage.clearAllTokens()
+      setAuthToken(undefined)
+      setLoggedIn(false)
+      navigateToInitialScreen()
+      return false
+    }
+  }, [setAuthToken, navigateToInitialScreen])
 
   const validationError = useMemo(() => {
     if (!authEmail || authEmail.length === 0) return "can't be blank"
@@ -214,6 +367,7 @@ export const AuthProvider: FC<PropsWithChildren<AuthProviderProps>> = ({ childre
     logout,
     checkLoginState,
     resetNetworkError,
+    refreshTokenIfNeeded,
     validationError,
   }
 

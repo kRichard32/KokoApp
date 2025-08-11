@@ -90,7 +90,7 @@ export const PeopleScreen: FC<PeopleScreenProps> = ({ navigation }) => {
             return {
               id: user.id,
               name: user.name || 'Unknown User',
-              age: user.age || 25,
+              age: user.age || 60 + Math.floor(Math.random() * 10),
               location: user.location || 'Unknown Location',
               interests: user.traits.map((t: any) => t.traitName) || ['Chat', 'Meeting'],
               avatar: avatarUri || require("../../assets/images/avatar-placeholder.jpg"),

@@ -4,6 +4,7 @@ import axios from "axios"
 import { useAuth } from "@/context/AuthContext"
 import { navigationRef } from "@/navigators/navigationUtilities"
 import { CommonActions } from "@react-navigation/native"
+import { SecureStorage } from "@/utils/secureStorage"
 
 const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL;
 
@@ -99,12 +100,21 @@ export const OAuthHandler = () => {
               })
               
               console.log('Token exchange successful:', res.data)
-              // Store the token if it's returned in the response
+              // Store the tokens securely
               if (res.data.idToken) {
                 const token = res.data.idToken
-                console.log('Storing received token:', token.substring(0, 20) + '...')
+                console.log('Storing received access token:', token.substring(0, 20) + '...')
                 console.log('Token length:', token.length)
                 setAuthToken(token)
+                
+                // Store access token securely
+                try {
+                  await SecureStorage.setAccessToken(token)
+                  console.log('Access token stored securely')
+                } catch (storageError) {
+                  console.error('Failed to store access token securely:', storageError)
+                }
+                
                 console.log('Token has been set in context')
                 
                 // Set up axios default authorization header for future requests
@@ -114,6 +124,21 @@ export const OAuthHandler = () => {
                 console.error('No idToken found in response. Authentication failed.')
                 navigateToInitialScreen()
                 return
+              }
+              
+              // Store refresh token securely if available
+              if (res.data.refreshToken) {
+                const refreshToken = res.data.refreshToken
+                console.log('Storing refresh token securely')
+                try {
+                  await SecureStorage.setRefreshToken(refreshToken)
+                  console.log('Refresh token stored securely in Android Keystore')
+
+                } catch (storageError) {
+                  console.error('Failed to store refresh token securely:', storageError)
+                }
+              } else {
+                console.log('No refresh token received from server')
               }
               
               // Check login state after successful token exchange to validate token and navigate

@@ -19,6 +19,7 @@ import type { AppStackScreenProps } from "@/navigators/AppNavigator"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { useAuth } from "@/context/AuthContext"
+import { SecureStorage } from "@/utils/secureStorage"
 
 const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL
 
@@ -30,7 +31,7 @@ export const ProfileScreen: FC<ProfileScreenProps> = ({ navigation }) => {
     theme: { colors, spacing },
   } = useAppTheme()
   
-  const { logout } = useAuth()
+  const { logout, setAuthToken } = useAuth()
   
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [userProfile, setUserProfile] = useState<any>(null)
@@ -165,6 +166,40 @@ export const ProfileScreen: FC<ProfileScreenProps> = ({ navigation }) => {
     }
   }
 
+  const handleClearAccessToken = async (event: any) => {
+    try {
+      // Clear access token from secure storage
+      await SecureStorage.clearAccessToken()
+      
+      // Clear axios authorization header
+      delete axios.defaults.headers.common['Authorization']
+      
+      // Clear any axios cookies/credentials by calling server logout
+      try {
+        await axios.post(`${serverUrl}/auth/logout`, {}, {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+        console.log('Server session cleared via logout endpoint')
+      } catch (logoutError) {
+        console.log('Logout call failed, but continuing with token clearing:', logoutError)
+      }
+      event.preventDefault();
+      setAuthToken(undefined)  // Clear the context state
+      Alert.alert(
+        "Access Token Cleared",
+        "Access token cleared and server session invalidated. Refresh token is preserved. Try making an API call to test auto-refresh.",
+        [{ text: "OK" }]
+      )
+      console.log('Access token cleared and server session invalidated, refresh token preserved')
+    } catch (error) {
+      console.error('Error clearing access token:', error)
+      Alert.alert("Error", "Failed to clear access token. Please try again.")
+    }
+  }
+
   return (
     <Screen
       preset="scroll"
@@ -219,6 +254,13 @@ export const ProfileScreen: FC<ProfileScreenProps> = ({ navigation }) => {
 
       {/* Logout Button */}
       <View style={$logoutSection}>
+        <Button
+          text="Clear Access Token (Test)"
+          style={$testButton}
+          textStyle={$testButtonText}
+          onPress={handleClearAccessToken}
+        />
+        
         <Button
           text="Logout"
           style={$logoutButton}
@@ -308,6 +350,19 @@ const $userEmail: TextStyle = {
 const $logoutSection: ViewStyle = {
   marginTop: "auto",
   paddingBottom: 32,
+  gap: 16,
+}
+
+const $testButton: ViewStyle = {
+  backgroundColor: "#FF9500",
+  paddingVertical: 16,
+  borderRadius: 8,
+}
+
+const $testButtonText: TextStyle = {
+  color: "white",
+  fontWeight: "600",
+  textAlign: "center",
 }
 
 const $logoutButton: ViewStyle = {
