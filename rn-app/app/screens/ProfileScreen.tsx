@@ -252,7 +252,20 @@ export const ProfileScreen: FC<ProfileScreenProps> = ({ navigation }) => {
         </View>
       )}
 
-      {/* Logout Button */}
+      {/* Action Buttons */}
+      <View style={$actionSection}>
+        <Button
+          text="View Metrics"
+          style={$metricsButton}
+          textStyle={$metricsButtonText}
+          onPress={() => {
+            console.log("Metrics button pressed!")
+            navigation.navigate("Metrics")
+          }}
+        />
+      </View>
+
+      {/* Test & Logout Buttons */}
       <View style={$logoutSection}>
         <Button
           text="Clear Access Token (Test)"
@@ -351,6 +364,23 @@ const $logoutSection: ViewStyle = {
   marginTop: "auto",
   paddingBottom: 32,
   gap: 16,
+}
+
+const $actionSection: ViewStyle = {
+  marginBottom: 16,
+  gap: 16,
+}
+
+const $metricsButton: ViewStyle = {
+  backgroundColor: "#007AFF",
+  paddingVertical: 16,
+  borderRadius: 8,
+}
+
+const $metricsButtonText: TextStyle = {
+  color: "white",
+  fontWeight: "600",
+  textAlign: "center",
 }
 
 const $testButton: ViewStyle = {

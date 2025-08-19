@@ -29,6 +29,7 @@ import { ProfileCreationScreen } from "@/screens/ProfileCreationScreen"
 import { ProfileScreen } from "@/screens/ProfileScreen"
 import { CreateEventScreen } from "@/screens/CreateEventScreen"
 import { CreateReminderScreen } from "@/screens/CreateReminderScreen"
+import { MetricsScreen } from "@/screens/MetricsScreen"
 
 import { DemoNavigator, DemoTabParamList } from "./DemoNavigator"
 import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
@@ -68,6 +69,7 @@ export type AppStackParamList = {
   HealthCheck: undefined
   ProfileCreation: undefined
   Profile: undefined
+  Metrics: undefined
   CreateEvent: undefined
   CreateReminder: undefined
   // 🔥 Your screens go here
@@ -150,6 +152,7 @@ const AppStack = () => {
       <Stack.Screen name="HealthCheck" component={HealthCheckScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ProfileCreation" component={ProfileCreationScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Metrics" component={MetricsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CreateEvent" component={CreateEventScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CreateReminder" component={CreateReminderScreen} options={{ headerShown: false }} />
       
